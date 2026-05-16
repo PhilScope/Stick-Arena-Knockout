@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stick Arena Knockout</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="background-grid" aria-hidden="true"></div>
+    <div class="background-glow glow-left" aria-hidden="true"></div>
+    <div class="background-glow glow-right" aria-hidden="true"></div>
+
+    <section id="mainMenu" class="screen active">
+      <div class="panel hero-panel">
+        <p class="eyebrow">Neon Platform Fighter</p>
+        <h1>Stick Arena Knockout</h1>
+        <p class="hero-copy">
+          Stoesse Gegner von der Arena, verteidige deine 3 Leben und nutze Charakter-Spezialfaehigkeiten
+          fuer das perfekte Knockout.
+        </p>
+
+        <div class="hero-tags">
+          <span>Canvas Arena</span>
+          <span>2 Spieler oder Bot</span>
+          <span>5 Kaempfer</span>
+          <span>Neue Faehigkeiten</span>
+          <span>PS5-Controller Support</span>
+        </div>
+
+        <button id="startButton" class="primary-button">Spiel starten</button>
+
+        <div class="quick-controls">
+          <div>
+            <strong>Spieler 1</strong>
+            <span>A/D bewegen, W springen, S blocken, F Angriff, G Spezial, H Faehigkeit</span>
+          </div>
+          <div>
+            <strong>Spieler 2</strong>
+            <span>Pfeile bewegen, K Angriff, L Spezial, M oder Oe Faehigkeit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="modeScreen" class="screen">
+      <div class="panel mode-panel">
+        <p class="eyebrow">Schritt 1</p>
+        <h2>Kampfmodus waehlen</h2>
+        <p class="section-copy">Vor jeder Runde legst du fest, ob ihr lokal spielt oder gegen einen Bot antretet.</p>
+
+        <div class="mode-grid">
+          <button class="mode-card" data-mode="local">
+            <span class="mode-tag">Lokal</span>
+            <strong>2 Spieler lokal</strong>
+            <p>Zwei Kaempfer, eine Tastatur, maximale Arena-Action.</p>
+          </button>
+
+          <button class="mode-card" data-mode="bot">
+            <span class="mode-tag">Solo</span>
+            <strong>Gegen Bot spielen</strong>
+            <p>Ein reaktiver Gegner mit 4 Schwierigkeitsstufen von Anfaenger bis beinahe unschlagbar.</p>
+          </button>
+        </div>
+
+        <div id="botDifficultyPanel" class="bot-difficulty-panel" hidden>
+          <div class="difficulty-panel-header">
+            <div>
+              <p class="eyebrow">Schritt 1B</p>
+              <h3>Bot-Schwierigkeit waehlen</h3>
+              <p class="section-copy">
+                Leicht ist fuer Einsteiger gedacht, Mittel ist fair, Schwer spielt sehr gut und Unmoeglich
+                macht dir fast keine Luft, bleibt aber noch schlagbar.
+              </p>
+            </div>
+
+            <div class="panel-heading-actions">
+              <button id="difficultyConfirmButton" class="primary-button" type="button">Bestaetigen</button>
+              <button id="difficultyBackButton" class="secondary-button" type="button">Zur&uuml;ck</button>
+            </div>
+          </div>
+
+          <div class="difficulty-grid">
+            <button class="difficulty-card" data-difficulty="easy" type="button">
+              <span class="difficulty-rank">1. Leicht</span>
+              <strong>Fuer Anfaenger</strong>
+              <p>Langsame Reaktion, viele Fehler, seltene Blocks und Specials.</p>
+            </button>
+
+            <button class="difficulty-card" data-difficulty="medium" type="button">
+              <span class="difficulty-rank">2. Mittel</span>
+              <strong>Ausgeglichen</strong>
+              <p>Solide Mischung aus Angriff, Bewegung und kleinen Fehlern.</p>
+            </button>
+
+            <button class="difficulty-card" data-difficulty="hard" type="button">
+              <span class="difficulty-rank">3. Schwer</span>
+              <strong>Sehr stark</strong>
+              <p>Reagiert schnell, kontrolliert die Mitte und nutzt Chancen konsequent.</p>
+            </button>
+
+            <button class="difficulty-card" data-difficulty="impossible" type="button">
+              <span class="difficulty-rank">4. Unmoeglich</span>
+              <strong>Fast unfair</strong>
+              <p>Extrem praezise, aggressiv und hart, aber mit kleinen Luecken zum Gewinnen.</p>
+            </button>
+          </div>
+        </div>
+
+        <div id="setupPanel" class="setup-panel" hidden>
+          <div class="setup-header">
+            <div>
+              <p class="eyebrow">Schritt 1C</p>
+              <h3>Eingaben waehlen</h3>
+              <p id="setupSubtitle" class="section-copy">
+                Lege pro Spieler fest, ob ihr mit Tastatur oder mit einem PS5-Controller spielt.
+              </p>
+            </div>
+
+            <button id="continueToCharactersButton" class="primary-button">Weiter zur Charakterauswahl</button>
+          </div>
+
+          <div class="controller-panel">
+            <div class="controller-panel-heading">
+              <strong>Controller-Status</strong>
+              <span>Controller werden live erkannt. Druecke bei Bedarf eine Taste am PS5-Controller.</span>
+            </div>
+
+            <div class="controller-status-grid">
+              <div id="controllerStatus0" class="controller-status-card">
+                <span class="controller-slot-label">Controller 1</span>
+                <strong class="controller-status-value">Nicht verbunden</strong>
+                <p class="controller-status-copy">Kein Gamepad erkannt.</p>
+              </div>
+
+              <div id="controllerStatus1" class="controller-status-card">
+                <span class="controller-slot-label">Controller 2</span>
+                <strong class="controller-status-value">Nicht verbunden</strong>
+                <p class="controller-status-copy">Kein Gamepad erkannt.</p>
+              </div>
+            </div>
+
+            <p id="controllerWarningText" class="controller-warning" hidden>
+              Kein Controller erkannt. Bitte PS5-Controller verbinden und eine Taste druecken.
+            </p>
+          </div>
+
+          <div class="input-assignment-grid">
+            <div class="input-assignment-card">
+              <span class="detail-label">Spieler 1</span>
+              <strong>Input-Profil</strong>
+              <p class="section-copy">Tastatur oder einer der verbundenen PS5-Controller.</p>
+              <div class="input-option-list">
+                <button class="input-option-button" data-player="1" data-input="keyboard" type="button">Tastatur</button>
+                <button class="input-option-button" data-player="1" data-input="controller0" type="button">PS5 Controller 1</button>
+                <button class="input-option-button" data-player="1" data-input="controller1" type="button">PS5 Controller 2</button>
+              </div>
+            </div>
+
+            <div id="player2AssignmentCard" class="input-assignment-card">
+              <span id="player2AssignmentLabel" class="detail-label">Spieler 2</span>
+              <strong id="player2AssignmentTitle">Input-Profil</strong>
+              <p id="player2AssignmentCopy" class="section-copy">
+                Waehle ein separates Profil. Derselbe Controller kann nicht beiden Spielern gleichzeitig zugewiesen werden.
+              </p>
+              <div id="player2InputOptions" class="input-option-list">
+                <button class="input-option-button" data-player="2" data-input="keyboard" type="button">Tastatur</button>
+                <button class="input-option-button" data-player="2" data-input="controller0" type="button">PS5 Controller 1</button>
+                <button class="input-option-button" data-player="2" data-input="controller1" type="button">PS5 Controller 2</button>
+              </div>
+            </div>
+          </div>
+
+          <p id="setupErrorText" class="setup-error"></p>
+        </div>
+
+        <button id="modeBackButton" class="secondary-button">Zur&uuml;ck</button>
+      </div>
+    </section>
+
+    <section id="characterScreen" class="screen">
+      <div class="panel selection-panel">
+        <div class="panel-heading">
+          <div>
+            <p id="selectionStep" class="eyebrow">Schritt 2</p>
+            <h2 id="selectionTitle">Spieler 1 waehlt</h2>
+            <p id="selectionSubtitle" class="section-copy">
+              Waehle ein Strichmaennchen und lies seine Staerken, Schwaechen und Spezialfaehigkeiten.
+            </p>
+          </div>
+
+          <div class="panel-heading-actions">
+            <button id="confirmCharacterTopButton" class="primary-button">Spieler 1 bestaetigen</button>
+            <button id="characterBackButton" class="secondary-button">Zur&uuml;ck</button>
+          </div>
+        </div>
+
+        <div class="selection-layout">
+          <div id="characterGrid" class="character-grid"></div>
+
+          <aside class="character-detail">
+            <div id="detailBadge" class="detail-badge">Kaempfer</div>
+            <h3 id="detailName">Ninja</h3>
+            <p id="detailDescription" class="detail-copy"></p>
+
+            <div class="detail-block">
+              <span class="detail-label">Design</span>
+              <p id="detailDesign"></p>
+            </div>
+
+            <div class="detail-block">
+              <span class="detail-label">Normaler Angriff</span>
+              <strong id="detailNormalName"></strong>
+              <p id="detailNormalDescription"></p>
+            </div>
+
+            <div class="detail-block">
+              <span class="detail-label">Spezialattacke</span>
+              <strong id="detailSpecialName"></strong>
+              <p id="detailSpecialDescription"></p>
+            </div>
+
+            <div class="detail-block">
+              <span class="detail-label">Neue Faehigkeit</span>
+              <strong id="detailAbilityName"></strong>
+              <p id="detailAbilityDescription"></p>
+              <p id="detailAbilityCooldown" class="detail-meta"></p>
+            </div>
+
+            <div class="detail-block">
+              <span class="detail-label">Tastatursteuerung</span>
+              <p id="detailKeyboardControls"></p>
+            </div>
+
+            <div class="detail-block">
+              <span class="detail-label">Controllersteuerung</span>
+              <p id="detailControllerControls"></p>
+            </div>
+
+            <div class="detail-columns">
+              <div class="detail-column">
+                <span class="detail-label">Vorteile</span>
+                <p id="detailPros"></p>
+              </div>
+              <div class="detail-column">
+                <span class="detail-label">Nachteile</span>
+                <p id="detailCons"></p>
+              </div>
+            </div>
+
+            <div id="detailStats" class="stat-cluster"></div>
+
+            <button id="confirmCharacterButton" class="primary-button">Charakter bestaetigen</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="battleScreen" class="screen battle-screen">
+      <div class="battle-shell">
+        <div class="hud">
+          <div class="hud-card player-one-card">
+            <div class="hud-title-row">
+              <span id="p1Label" class="hud-label">Spieler 1</span>
+              <strong id="p1Character">Ninja</strong>
+            </div>
+            <div id="p1InputTag" class="hud-input-tag">Tastatur</div>
+            <div id="p1Lives" class="life-hearts" aria-label="Leben Spieler 1"></div>
+            <div class="cooldown-block">
+              <span>Spezial</span>
+              <div class="cooldown-meter">
+                <span id="p1CooldownFill" class="cooldown-fill"></span>
+              </div>
+            </div>
+            <div class="cooldown-block">
+              <span>Faehigkeit</span>
+              <div class="cooldown-meter">
+                <span id="p1AbilityFill" class="cooldown-fill ability-fill"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hud-center">
+            <div id="modeBadge" class="mode-badge">Gegen Bot</div>
+            <div class="hud-tip">ESC pausiert</div>
+          </div>
+
+          <div class="hud-card player-two-card">
+            <div class="hud-title-row">
+              <span id="p2Label" class="hud-label">Bot</span>
+              <strong id="p2Character">Tank</strong>
+            </div>
+            <div id="p2InputTag" class="hud-input-tag">Bot-KI</div>
+            <div id="p2Lives" class="life-hearts" aria-label="Leben Spieler 2"></div>
+            <div class="cooldown-block">
+              <span>Spezial</span>
+              <div class="cooldown-meter">
+                <span id="p2CooldownFill" class="cooldown-fill"></span>
+              </div>
+            </div>
+            <div class="cooldown-block">
+              <span>Faehigkeit</span>
+              <div class="cooldown-meter">
+                <span id="p2AbilityFill" class="cooldown-fill ability-fill"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="canvas-frame">
+          <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+          <div class="battle-guides" aria-hidden="true">
+            <div id="p1GuideCard" class="control-guide control-guide-left">
+              <span id="p1GuideTitle" class="control-guide-title">Spieler 1</span>
+              <p id="p1GuideMove" class="control-guide-line"></p>
+              <p id="p1GuideAttack" class="control-guide-line"></p>
+              <p id="p1GuideAbility" class="control-guide-line"></p>
+            </div>
+
+            <div id="p2GuideCard" class="control-guide control-guide-right">
+              <span id="p2GuideTitle" class="control-guide-title">Bot</span>
+              <p id="p2GuideMove" class="control-guide-line"></p>
+              <p id="p2GuideAttack" class="control-guide-line"></p>
+              <p id="p2GuideAbility" class="control-guide-line"></p>
+            </div>
+          </div>
+
+          <div class="damage-hud" aria-hidden="true">
+            <div id="p1DamageCard" class="damage-card damage-card-left">
+              <span id="p1DamageMeta" class="damage-meta">Spieler 1</span>
+              <div class="damage-row">
+                <strong id="p1DamageValue" class="damage-value">0%</strong>
+                <div class="damage-meter">
+                  <span id="p1DamageFill" class="damage-fill"></span>
+                </div>
+              </div>
+            </div>
+
+            <div id="p2DamageCard" class="damage-card damage-card-right">
+              <span id="p2DamageMeta" class="damage-meta">Bot</span>
+              <div class="damage-row">
+                <strong id="p2DamageValue" class="damage-value">0%</strong>
+                <div class="damage-meter">
+                  <span id="p2DamageFill" class="damage-fill"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="countdownOverlay" class="overlay-label hidden" aria-live="polite"></div>
+
+          <div id="pauseOverlay" class="overlay-card hidden">
+            <p id="pauseEyebrow" class="eyebrow">Pause</p>
+            <h3 id="pauseTitle">Runde angehalten</h3>
+            <p id="pauseMessage">Druecke ESC oder nutze die Buttons, um fortzufahren.</p>
+            <div class="overlay-actions">
+              <button id="resumeButton" class="primary-button">Fortsetzen</button>
+              <button id="pauseMenuButton" class="secondary-button">Zur&uuml;ck zum Men&uuml;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="endScreen" class="screen">
+      <div id="endPanel" class="panel result-panel">
+        <p id="endEyebrow" class="eyebrow">Rundenende</p>
+        <h2 id="endTitle">Spieler 1 gewinnt!</h2>
+        <p id="endSubtitle" class="section-copy"></p>
+
+        <div class="result-actions">
+          <button id="playAgainButton" class="primary-button">Nochmal spielen</button>
+          <button id="backToMenuButton" class="secondary-button">Zur&uuml;ck zum Men&uuml;</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
