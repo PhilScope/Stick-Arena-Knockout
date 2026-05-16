@@ -89,6 +89,9 @@ const ui = {
   pauseMessage: document.getElementById("pauseMessage"),
   resumeButton: document.getElementById("resumeButton"),
   pauseMenuButton: document.getElementById("pauseMenuButton"),
+  touchControls: document.getElementById("touchControls"),
+  touchStatusLabel: document.getElementById("touchStatusLabel"),
+  touchButtons: [...document.querySelectorAll("[data-touch-action]")],
   endPanel: document.getElementById("endPanel"),
   endEyebrow: document.getElementById("endEyebrow"),
   endTitle: document.getElementById("endTitle"),
@@ -117,8 +120,13 @@ const GAME = {
 
 const INPUT_LABELS = {
   keyboard: "Tastatur",
-  controller0: "PS5 Controller 1",
-  controller1: "PS5 Controller 2",
+  touch: "Handy Touch",
+  controller0: "Controller 1",
+  controller1: "Controller 2",
+  controller0ps: "Ps Controller 1",
+  controller1ps: "Ps Controller 2",
+  controller0xbox: "Xbox Controller 1",
+  controller1xbox: "Xbox Controller 2",
   bot: "Bot-KI",
 };
 
@@ -145,7 +153,10 @@ const KEYBOARD_LAYOUTS = {
   },
 };
 
-const CONTROLLER_HELP_TEXT = "Linker Stick oder D-Pad links/rechts bewegen, X springen, Kreis normaler Angriff, Quadrat Spezial, Dreieck neue Faehigkeit, L1 blocken, Options pausieren";
+const PS_CONTROLLER_HELP_TEXT = "Linker Stick oder D-Pad links/rechts bewegen, X springen, Kreis normaler Angriff, Quadrat Spezial, Dreieck neue Faehigkeit, L1 blocken, Options pausieren";
+const XBOX_CONTROLLER_HELP_TEXT = "Linker Stick oder Steuerkreuz links/rechts bewegen, A springen, B normaler Angriff, X Spezial, Y neue Faehigkeit, LB blocken, Menu pausieren";
+const GENERIC_CONTROLLER_HELP_TEXT = "Linker Stick oder D-Pad links/rechts bewegen, untere Taste springen, rechte Taste normaler Angriff, linke Taste Spezial, obere Taste Faehigkeit, linke Schultertaste blocken, Start/Menu pausieren";
+const TOUCH_HELP_TEXT = "On-Screen-Buttons: Links/Rechts bewegen, Sprung, Block, Angriff, Spezial, Faehigkeit und Pause direkt auf dem Handy-Bildschirm.";
 
 const BOT_DIFFICULTIES = {
   easy: {
@@ -469,9 +480,401 @@ const CHARACTER_DATA = [
     normalDamage: 7,
     specialDamage: 14,
   },
+  {
+    id: "samurai",
+    name: "Samurai",
+    role: "Steel Countermaster",
+    color: "#1d2f74",
+    accent: "#6db4ff",
+    accentSecondary: "#d8ecff",
+    description: "Kontrolliert den Raum mit praezisen Klingenwinkeln und einem gefaehrlichen Gegenangriff.",
+    designDescription: "Dunkelblaues Strichmaennchen mit Katana, Schulterruestung und wehender Kopfbinde. Seine Angriffe ziehen kuehle blaue Schnittspuren durch die Luft.",
+    normalAttackName: "Praeziser Schwertschnitt",
+    normalAttackDescription: "Ein sauberer Katana-Schnitt mit schmaler, weit reichender Schneidspur.",
+    specialName: "Klingensturm",
+    specialDescription: "Ein wirbelnder Angriff mit mehreren blauen Schnittboegen, der Gegner in der Naehe zerlegt und wegschleudert.",
+    abilityName: "Gegenangriff",
+    abilityDescription: "Oeffnet kurz eine Konterhaltung. Ein eingehender Treffer wird abgefangen und mit einem automatischen Gegenschnitt beantwortet.",
+    pros: "Hoher Schaden, starke Reichweite, gefaehrliche Punishes.",
+    cons: "Nur mittleres Tempo und lebt von gutem Timing.",
+    statsText: ["Tempo: Mittel", "Gewicht: Mittel", "Reichweite: Hoch", "Konterspiel: Sehr hoch"],
+    gameplay: {
+      moveSpeed: 336,
+      airSpeed: 300,
+      acceleration: 2360,
+      airAcceleration: 1540,
+      friction: 2300,
+      airDrag: 500,
+      jumpForce: 760,
+      resistance: 1.08,
+      attackCooldown: 0.32,
+      specialCooldown: 4.2,
+      abilityCooldown: 6.8,
+      abilityDuration: 0.55,
+      attackKnockback: 620,
+      attackLift: 260,
+      jumps: 1,
+      blockMultiplier: 0.4,
+    },
+    normalDamage: 8,
+    specialDamage: 17,
+  },
+  {
+    id: "assassine",
+    name: "Assassine",
+    role: "Phantom Striker",
+    color: "#37214f",
+    accent: "#74ff8c",
+    accentSecondary: "#d7ffe1",
+    description: "Blitzschnell, schwer zu lesen und auf kurze Burst-Fenster spezialisiert.",
+    designDescription: "Dunkelviolettes Strichmaennchen mit Kapuze, gruener Augenlinie und duennen Dolchklingen. Bewegungen hinterlassen geisterhafte Schattenbilder.",
+    normalAttackName: "Dolchstoss",
+    normalAttackDescription: "Ein schneller Vorwaertsstoss mit gruener Splitterspur.",
+    specialName: "Mehrfacher Schattenangriff",
+    specialDescription: "Mehrere kurze Schattenhiebe blitzen nacheinander auf und treffen aus leicht versetzten Winkeln.",
+    abilityName: "Unsichtbarkeit",
+    abilityDescription: "Wird fuer kurze Zeit durchsichtig, schwerer zu treffen und gleitet mit kalten Schattenpartikeln ueber die Arena.",
+    pros: "Extrem schnell, starkes Mixup, gute Ringout-Chancen.",
+    cons: "Sehr leicht und bei Fehlern schnell aus der Arena.",
+    statsText: ["Tempo: Extrem hoch", "Gewicht: Sehr leicht", "Reichweite: Kurz", "Trickreich: Maximal"],
+    gameplay: {
+      moveSpeed: 432,
+      airSpeed: 374,
+      acceleration: 2820,
+      airAcceleration: 1860,
+      friction: 2480,
+      airDrag: 520,
+      jumpForce: 804,
+      resistance: 0.86,
+      attackCooldown: 0.24,
+      specialCooldown: 4.1,
+      abilityCooldown: 7.4,
+      abilityDuration: 2.7,
+      attackKnockback: 500,
+      attackLift: 190,
+      jumps: 1,
+      blockMultiplier: 0.48,
+    },
+    normalDamage: 6,
+    specialDamage: 13,
+  },
+  {
+    id: "blitzkaempfer",
+    name: "Blitzkaempfer",
+    role: "Storm Runner",
+    color: "#f9d53a",
+    accent: "#fff59d",
+    accentSecondary: "#ffffff",
+    description: "Explosiv schnell und mit elektrischen Vorstoessen kaum zu fassen.",
+    designDescription: "Gelbes Strichmaennchen mit flackernder Stromaura, hellen Funken und kurzen elektrischen Nachbildern an Armen und Beinen.",
+    normalAttackName: "Elektrischer Schlag",
+    normalAttackDescription: "Ein schneller Stoss mit zackiger Stromspur und grellem Funkenblitz.",
+    specialName: "Kettenblitz",
+    specialDescription: "Ein heftiger elektrischer Ausbruch schiesst nach vorne und knistert in mehreren Schlangenlinien durch den Raum.",
+    abilityName: "Blitzsprung",
+    abilityDescription: "Ein sofortiger Sprint mit elektrischem Nachbild, der Positionen wechselt und Gegner beim Durchbruch streifen kann.",
+    pros: "Maximales Tempo, starke Vorstoesse, guter Edge-Recovery.",
+    cons: "Wenig Kontrolle und leichte Uebersteuerung in hektischen Situationen.",
+    statsText: ["Tempo: Maximal", "Gewicht: Leicht", "Reichweite: Mittel", "Kontrolle: Niedrig"],
+    gameplay: {
+      moveSpeed: 446,
+      airSpeed: 382,
+      acceleration: 2900,
+      airAcceleration: 1900,
+      friction: 2520,
+      airDrag: 500,
+      jumpForce: 780,
+      resistance: 0.88,
+      attackCooldown: 0.26,
+      specialCooldown: 4.5,
+      abilityCooldown: 6.2,
+      abilityDuration: 0.28,
+      attackKnockback: 560,
+      attackLift: 210,
+      jumps: 1,
+      blockMultiplier: 0.46,
+    },
+    normalDamage: 7,
+    specialDamage: 14,
+  },
+  {
+    id: "eiswaechter",
+    name: "Eiswaechter",
+    role: "Frost Sentinel",
+    color: "#9fe2ff",
+    accent: "#e8f7ff",
+    accentSecondary: "#69b8ff",
+    description: "Verlangsamt das Matchtempo mit Frostfeldern, Kontrolle und sicherer Distanz.",
+    designDescription: "Hellblaues Strichmaennchen mit Frostpartikeln, kleinen Eiskristallen an Schultern und kaltem Atemschimmer.",
+    normalAttackName: "Froststoss",
+    normalAttackDescription: "Ein kalter Stoss mit hellblauer Splitterspur und kurzem Frostnebel.",
+    specialName: "Eisexplosion",
+    specialDescription: "Eine gefrorene Druckwelle platzt auf und wirft Gegner mit Kristallringen und Frostsplittern zurueck.",
+    abilityName: "Einfrieren",
+    abilityDescription: "Belegt den Gegner mit eisiger Laehmung und verlangsamt ihn fuer kurze Zeit stark.",
+    pros: "Sehr gute Kontrolle, starke Defensive und sichere Spezialzonen.",
+    cons: "Langsamere Startups und weniger Druck im Nahkampf.",
+    statsText: ["Tempo: Niedrig", "Gewicht: Mittel", "Reichweite: Mittel", "Kontrolle: Sehr hoch"],
+    gameplay: {
+      moveSpeed: 304,
+      airSpeed: 272,
+      acceleration: 2140,
+      airAcceleration: 1420,
+      friction: 2260,
+      airDrag: 490,
+      jumpForce: 730,
+      resistance: 1.04,
+      attackCooldown: 0.39,
+      specialCooldown: 5.1,
+      abilityCooldown: 8.3,
+      abilityDuration: 2.4,
+      attackKnockback: 590,
+      attackLift: 240,
+      jumps: 1,
+      blockMultiplier: 0.48,
+    },
+    normalDamage: 7,
+    specialDamage: 15,
+  },
+  {
+    id: "feuerlord",
+    name: "Feuerlord",
+    role: "Inferno Monarch",
+    color: "#ff7d2a",
+    accent: "#ffd268",
+    accentSecondary: "#fff2c8",
+    description: "Lebt von grossen Spezialmomenten, Flammenaura und heissen Finishern.",
+    designDescription: "Orange-rotes Strichmaennchen mit lodernder Flammenaura, funkelnden Aschepartikeln und heissen Glutlinien entlang der Arme.",
+    normalAttackName: "Flammenschlag",
+    normalAttackDescription: "Ein vorwaerts gezogener Flammenhieb mit glimmender Schlagkante.",
+    specialName: "Feuersturm",
+    specialDescription: "Ein grosser Flammenausbruch walzt nach vorne und umhuellt den Trefferbereich in rot-orange Wirbel.",
+    abilityName: "Brennende Aura",
+    abilityDescription: "Entfacht eine aggressive Aura, die fuer kurze Zeit Schaden und Rueckstoss seiner Treffer erhoeht.",
+    pros: "Sehr starke Spezialhits, gute Finisher und druckvolle Auren.",
+    cons: "Nur mittlere Defensive und anfaellig gegen schnelle Konter.",
+    statsText: ["Tempo: Mittel", "Gewicht: Mittel", "Reichweite: Mittel", "Spezialkraft: Sehr hoch"],
+    gameplay: {
+      moveSpeed: 352,
+      airSpeed: 318,
+      acceleration: 2380,
+      airAcceleration: 1600,
+      friction: 2290,
+      airDrag: 495,
+      jumpForce: 760,
+      resistance: 0.98,
+      attackCooldown: 0.31,
+      specialCooldown: 4.6,
+      abilityCooldown: 8.7,
+      abilityDuration: 3.9,
+      attackKnockback: 630,
+      attackLift: 250,
+      jumps: 1,
+      blockMultiplier: 0.43,
+    },
+    normalDamage: 8,
+    specialDamage: 18,
+  },
+  {
+    id: "schattenkrieger",
+    name: "Schattenkrieger",
+    role: "Void Mirage",
+    color: "#0f101a",
+    accent: "#a46dff",
+    accentSecondary: "#d6c8ff",
+    description: "Arbeitet mit Nebel, Illusionen und mobilen Burst-Fenstern aus dem Dunkel.",
+    designDescription: "Schwarzes Strichmaennchen mit violettem Nebel, dunklen Klingenarmen und geisterhaften Nachbildern bei Faehigkeiten.",
+    normalAttackName: "Dunkelklinge",
+    normalAttackDescription: "Ein kurzer dunkler Schnitt mit violetter Nebelspur.",
+    specialName: "Schattenexplosion",
+    specialDescription: "Ein dichter Schattenball verdichtet sich und detoniert mit violettem Impulsring.",
+    abilityName: "Dunkle Kopie",
+    abilityDescription: "Beschwoert eine kurzlebige Illusion, die seine Silhouette spiegelt und Treffer schwerer lesbar macht.",
+    pros: "Starke Taeuschung, gutes Movement, flexible Angriffsfenster.",
+    cons: "Nur mittlere Rohkraft und braucht gutes Stellungsspiel.",
+    statsText: ["Tempo: Hoch", "Gewicht: Leicht", "Reichweite: Mittel", "Taeuschung: Sehr hoch"],
+    gameplay: {
+      moveSpeed: 390,
+      airSpeed: 338,
+      acceleration: 2560,
+      airAcceleration: 1700,
+      friction: 2400,
+      airDrag: 500,
+      jumpForce: 778,
+      resistance: 0.94,
+      attackCooldown: 0.29,
+      specialCooldown: 4.4,
+      abilityCooldown: 7.9,
+      abilityDuration: 2.7,
+      attackKnockback: 540,
+      attackLift: 215,
+      jumps: 1,
+      blockMultiplier: 0.46,
+    },
+    normalDamage: 7,
+    specialDamage: 14,
+  },
+  {
+    id: "cyborg",
+    name: "Cyborg",
+    role: "Augment Vanguard",
+    color: "#aab6c9",
+    accent: "#ff546e",
+    accentSecondary: "#ffe1e7",
+    description: "Ausgewogen, technisch und mit kurzer Ueberladung auf starke Power-Spikes ausgelegt.",
+    designDescription: "Silbernes Strichmaennchen mit roten Sensoren, mechanischen Gelenklinien und leuchtenden Kernsegmenten im Oberkoerper.",
+    normalAttackName: "Metallschlag",
+    normalAttackDescription: "Ein harter Metalltreffer mit rotem Sensorschein und Funkenring.",
+    specialName: "Raketenstoss",
+    specialDescription: "Ein brutaler Vorwaertsstoss mit Raketenflamme und rotem Schubnachbild.",
+    abilityName: "Energieueberladung",
+    abilityDescription: "Laedt die Systeme kurz auf und erhoeht Geschwindigkeit, Schaden und Druckfenster fuer eine Weile.",
+    pros: "Sehr ausgeglichen, sauberer Allrounder und gut fuer fast jede Distanz.",
+    cons: "Lange Cooldowns und ohne Overload etwas geradlinig.",
+    statsText: ["Tempo: Mittel", "Gewicht: Mittel", "Reichweite: Mittel", "Allround: Sehr hoch"],
+    gameplay: {
+      moveSpeed: 342,
+      airSpeed: 306,
+      acceleration: 2300,
+      airAcceleration: 1500,
+      friction: 2280,
+      airDrag: 490,
+      jumpForce: 748,
+      resistance: 1.08,
+      attackCooldown: 0.33,
+      specialCooldown: 5.2,
+      abilityCooldown: 9.8,
+      abilityDuration: 3.5,
+      attackKnockback: 610,
+      attackLift: 250,
+      jumps: 1,
+      blockMultiplier: 0.41,
+    },
+    normalDamage: 8,
+    specialDamage: 16,
+  },
+  {
+    id: "berserker",
+    name: "Berserker",
+    role: "Bloodstorm",
+    color: "#6a1017",
+    accent: "#ff5766",
+    accentSecondary: "#ffd0d5",
+    description: "Will den Schlagabtausch eskalieren und wird im verletzten Zustand immer gefaehrlicher.",
+    designDescription: "Dunkelrotes Strichmaennchen mit rauer Aura, schwerer Axtsilhouette und wilden, rissigen Linien an Armen und Schultern.",
+    normalAttackName: "Axtschlag",
+    normalAttackDescription: "Ein schwerer Hieb mit rot aufplatzender Schneidspur.",
+    specialName: "Rasender Wirbel",
+    specialDescription: "Ein aggressiver Drehangriff, der mit rohen Blutrausch-Ringen durch den Nahbereich schneidet.",
+    abilityName: "Blutrausch",
+    abilityDescription: "Entfacht einen Kampfrausch. Je weniger Leben uebrig sind, desto staerker werden Schaden und Knockback waehrend der Dauer.",
+    pros: "Sehr hoher Knockback, starke Finisher, eskaliert im Spaetspiel.",
+    cons: "Wenig Verteidigung und kann bei Fehlschlaegen schnell bestraft werden.",
+    statsText: ["Tempo: Mittel", "Gewicht: Leicht", "Reichweite: Mittel", "Knockback: Extrem hoch"],
+    gameplay: {
+      moveSpeed: 360,
+      airSpeed: 322,
+      acceleration: 2420,
+      airAcceleration: 1600,
+      friction: 2260,
+      airDrag: 490,
+      jumpForce: 760,
+      resistance: 0.9,
+      attackCooldown: 0.31,
+      specialCooldown: 4.3,
+      abilityCooldown: 8.1,
+      abilityDuration: 4.4,
+      attackKnockback: 680,
+      attackLift: 280,
+      jumps: 1,
+      blockMultiplier: 0.5,
+    },
+    normalDamage: 8,
+    specialDamage: 17,
+  },
+  {
+    id: "windlaeufer",
+    name: "Windlaeufer",
+    role: "Sky Dancer",
+    color: "#54e6e2",
+    accent: "#ddfff6",
+    accentSecondary: "#88f6ff",
+    description: "Leichter Luftrupler mit viel Kontrolle in der Vertikalen und konstantem Drift.",
+    designDescription: "Tuerkises Strichmaennchen mit Windspiralen, hellen Luftbaendern an den Fuessen und fliessenden Bewegungsstreifen.",
+    normalAttackName: "Windkick",
+    normalAttackDescription: "Ein luftiger Kick mit halbmondfoermiger Windkante.",
+    specialName: "Tornadostoss",
+    specialDescription: "Ein wirbelnder Luftschub schiebt Gegner mit mehreren Spiralboegen vom Mittelpunkt weg.",
+    abilityName: "Luftgleiten",
+    abilityDescription: "Verlangsamt den Fall deutlich und gibt fuer kurze Zeit sehr viel Luftkontrolle ueber der Plattformkante.",
+    pros: "Hohe Beweglichkeit, starke Erholung, gutes Edge-Spiel.",
+    cons: "Leicht und mit geringerer Stabilitaet unter Druck.",
+    statsText: ["Tempo: Hoch", "Gewicht: Leicht", "Reichweite: Mittel", "Luftkontrolle: Maximal"],
+    gameplay: {
+      moveSpeed: 402,
+      airSpeed: 376,
+      acceleration: 2660,
+      airAcceleration: 1880,
+      friction: 2360,
+      airDrag: 430,
+      jumpForce: 826,
+      resistance: 0.88,
+      attackCooldown: 0.27,
+      specialCooldown: 3.8,
+      abilityCooldown: 6.6,
+      abilityDuration: 3.4,
+      attackKnockback: 520,
+      attackLift: 300,
+      jumps: 2,
+      blockMultiplier: 0.49,
+    },
+    normalDamage: 6,
+    specialDamage: 13,
+  },
+  {
+    id: "titan",
+    name: "Titan",
+    role: "Bronze Colossus",
+    color: "#8f6639",
+    accent: "#ffcf84",
+    accentSecondary: "#fff0ce",
+    description: "Ein massiver Koloss mit maximaler Standfestigkeit, schwersten Treffern und brutaler Zonenpraesenz.",
+    designDescription: "Riesiges bronzefarbenes Strichmaennchen mit massiver Panzerung, breiten Schultern und schwerer Kernplatte im Oberkoerper.",
+    normalAttackName: "Titanenschlag",
+    normalAttackDescription: "Ein extrem schwerer Frontschlag mit bronzenem Impact-Ring und Staubfontaene.",
+    specialName: "Erdbeben",
+    specialDescription: "Ein massiver Bodenschock reisst in einer weiten Stosswelle durch die Arena und zerbricht optisch den Boden unter ihm.",
+    abilityName: "Standfestigkeit",
+    abilityDescription: "Wird fuer kurze Zeit praktisch unverschiebbar, bleibt aber dabei deutlich traeger als sonst.",
+    pros: "Maximale Defensive, enorme Knockback-Werte und starke Kontrolle der Plattformmitte.",
+    cons: "Sehr langsam und leicht ausspielbar, wenn er daneben liegt.",
+    statsText: ["Tempo: Sehr niedrig", "Gewicht: Maximal", "Reichweite: Hoch", "Defensive: Maximal"],
+    gameplay: {
+      moveSpeed: 238,
+      airSpeed: 204,
+      acceleration: 1680,
+      airAcceleration: 1120,
+      friction: 1980,
+      airDrag: 450,
+      jumpForce: 666,
+      resistance: 1.38,
+      attackCooldown: 0.46,
+      specialCooldown: 5.4,
+      abilityCooldown: 10.8,
+      abilityDuration: 4.4,
+      attackKnockback: 760,
+      attackLift: 320,
+      jumps: 1,
+      blockMultiplier: 0.32,
+    },
+    normalDamage: 10,
+    specialDamage: 19,
+  },
 ];
 
 const CHARACTER_MAP = Object.fromEntries(CHARACTER_DATA.map((character) => [character.id, character]));
+const HEAVY_CHARACTER_IDS = new Set(["tank", "titan"]);
+const RANGED_ATTACKER_IDS = new Set(["magier", "blitzkaempfer", "eiswaechter", "feuerlord"]);
 
 const DEFAULT_ACTION = () => ({
   left: false,
@@ -527,6 +930,9 @@ function getInputChoiceLabel(choice, slot) {
   if (choice === "keyboard") {
     return slot === 2 ? "Tastatur P2" : "Tastatur P1";
   }
+  if (choice === "touch") {
+    return slot === 2 ? "Handy Touch P2" : "Handy Touch P1";
+  }
   return INPUT_LABELS[choice] ?? "Unbekannt";
 }
 
@@ -535,13 +941,55 @@ function getBotDifficultyConfig(key) {
 }
 
 function getControllerSlotFromChoice(choice) {
-  if (choice === "controller0") {
+  if (choice === "controller0" || choice === "controller0ps" || choice === "controller0xbox") {
     return 0;
   }
-  if (choice === "controller1") {
+  if (choice === "controller1" || choice === "controller1ps" || choice === "controller1xbox") {
     return 1;
   }
   return null;
+}
+
+function isControllerChoice(choice) {
+  return getControllerSlotFromChoice(choice) !== null;
+}
+
+function getControllerSchemeFromChoice(choice) {
+  if (choice?.endsWith("xbox")) {
+    return "xbox";
+  }
+  if (choice?.endsWith("ps")) {
+    return "ps";
+  }
+  return "generic";
+}
+
+function detectControllerFamilyFromId(id = "") {
+  const lowered = id.toLowerCase();
+  if (lowered.includes("xbox") || lowered.includes("xinput")) {
+    return "xbox";
+  }
+  if (
+    lowered.includes("dualsense") ||
+    lowered.includes("dualshock") ||
+    lowered.includes("wireless controller") ||
+    lowered.includes("playstation") ||
+    lowered.includes("ps5") ||
+    lowered.includes("ps4")
+  ) {
+    return "ps";
+  }
+  return "generic";
+}
+
+function getControllerHelpTextForScheme(scheme) {
+  if (scheme === "ps") {
+    return PS_CONTROLLER_HELP_TEXT;
+  }
+  if (scheme === "xbox") {
+    return XBOX_CONTROLLER_HELP_TEXT;
+  }
+  return GENERIC_CONTROLLER_HELP_TEXT;
 }
 
 function showScreen(screenName) {
@@ -584,12 +1032,20 @@ function getKeyboardControlTextForSlot(slot, botSlot = false) {
   return "Pfeile links/rechts bewegen, Pfeil hoch springen, Pfeil runter blocken, K normaler Angriff, L Spezialangriff, M oder Oe neue Faehigkeit.";
 }
 
-function getControllerControlText(botSlot = false) {
+function getControllerControlText(botSlot = false, scheme = "generic") {
   if (botSlot) {
-    return "Im Bot-Modus uebernimmt die KI den Slot. Lokal oder gegen einen Menschen gilt die PS5-Steuerung mit Stick, X, Kreis, Quadrat, Dreieck, L1 und Options.";
+    return "Im Bot-Modus uebernimmt die KI den Slot. Lokal oder gegen einen Menschen funktionieren Ps-, Xbox- und andere kompatible Controller ueber die Standard-Gamepad-Steuerung.";
   }
 
-  return CONTROLLER_HELP_TEXT + ".";
+  if (scheme === "generic") {
+    return `${PS_CONTROLLER_HELP_TEXT}. Xbox: ${XBOX_CONTROLLER_HELP_TEXT}.`;
+  }
+
+  return `${getControllerHelpTextForScheme(scheme)}.`;
+}
+
+function getTouchControlText() {
+  return TOUCH_HELP_TEXT;
 }
 
 class SoundManager {
@@ -893,6 +1349,131 @@ class AttackEntity {
         context.arc(this.x, this.y, Math.max(this.width, this.height) * 0.28, 0, Math.PI * 2);
         context.stroke();
         break;
+      case "electric":
+        context.strokeStyle = this.color;
+        context.lineWidth = 4;
+        context.beginPath();
+        context.moveTo(this.x - this.radius, this.y + this.height * 0.1);
+        context.lineTo(this.x - this.radius * 0.4, this.y - this.height * 0.2);
+        context.lineTo(this.x, this.y + this.height * 0.15);
+        context.lineTo(this.x + this.radius * 0.34, this.y - this.height * 0.18);
+        context.lineTo(this.x + this.radius, this.y + this.height * 0.08);
+        context.stroke();
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(this.x - this.radius * 0.72, this.y - 2);
+        context.lineTo(this.x - this.radius * 0.1, this.y - this.height * 0.3);
+        context.lineTo(this.x + this.radius * 0.38, this.y - 2);
+        context.stroke();
+        break;
+      case "frost":
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        context.stroke();
+        context.strokeStyle = this.color;
+        context.lineWidth = 2;
+        for (let index = 0; index < 6; index += 1) {
+          const angle = (Math.PI * 2 * index) / 6;
+          context.beginPath();
+          context.moveTo(this.x, this.y);
+          context.lineTo(this.x + Math.cos(angle) * this.radius, this.y + Math.sin(angle) * this.radius);
+          context.stroke();
+        }
+        break;
+      case "flame":
+        context.fillStyle = this.color;
+        context.beginPath();
+        context.moveTo(this.x - this.radius * 0.85, this.y + this.radius * 0.5);
+        context.quadraticCurveTo(this.x - this.radius * 0.35, this.y - this.radius * 1.2, this.x, this.y - this.radius * 0.25);
+        context.quadraticCurveTo(this.x + this.radius * 0.28, this.y - this.radius * 1.35, this.x + this.radius * 0.85, this.y + this.radius * 0.36);
+        context.closePath();
+        context.fill();
+        context.fillStyle = this.secondaryColor;
+        context.globalAlpha = alpha * 0.65;
+        context.beginPath();
+        context.moveTo(this.x - this.radius * 0.34, this.y + this.radius * 0.24);
+        context.quadraticCurveTo(this.x, this.y - this.radius * 0.84, this.x + this.radius * 0.32, this.y + this.radius * 0.12);
+        context.closePath();
+        context.fill();
+        break;
+      case "shadow-burst":
+        context.fillStyle = this.color;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        context.fill();
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius * 0.64, 0, Math.PI * 2);
+        context.stroke();
+        break;
+      case "rocket":
+        context.fillStyle = this.color;
+        context.beginPath();
+        context.moveTo(this.x - this.width * 0.42, this.y + this.height * 0.18);
+        context.lineTo(this.x + this.width * 0.18, this.y + this.height * 0.18);
+        context.lineTo(this.x + this.width * 0.44, this.y);
+        context.lineTo(this.x + this.width * 0.18, this.y - this.height * 0.18);
+        context.lineTo(this.x - this.width * 0.42, this.y - this.height * 0.18);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 2.5;
+        context.beginPath();
+        context.moveTo(this.x - this.width * 0.48, this.y);
+        context.lineTo(this.x - this.width * 0.74, this.y - this.height * 0.18);
+        context.moveTo(this.x - this.width * 0.48, this.y);
+        context.lineTo(this.x - this.width * 0.74, this.y + this.height * 0.18);
+        context.stroke();
+        break;
+      case "tornado":
+        context.strokeStyle = this.color;
+        context.lineWidth = 4;
+        for (let ring = 0; ring < 3; ring += 1) {
+          const radius = this.radius * (0.48 + ring * 0.24);
+          context.beginPath();
+          context.ellipse(this.x, this.y - ring * 6, radius, radius * 0.42, 0, 0, Math.PI * 2);
+          context.stroke();
+        }
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius * 0.55, -1.4, 1.2);
+        context.stroke();
+        break;
+      case "quake":
+        context.strokeStyle = this.color;
+        context.lineWidth = 5;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        context.stroke();
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 3;
+        context.beginPath();
+        context.moveTo(this.x - this.radius * 0.82, this.y);
+        context.lineTo(this.x - this.radius * 0.36, this.y - 8);
+        context.lineTo(this.x - this.radius * 0.08, this.y + 10);
+        context.lineTo(this.x + this.radius * 0.28, this.y - 7);
+        context.lineTo(this.x + this.radius * 0.74, this.y + 4);
+        context.stroke();
+        break;
+      case "multi-slash":
+        context.strokeStyle = this.color;
+        context.lineWidth = 5;
+        for (let sweep = -1; sweep <= 1; sweep += 1) {
+          context.beginPath();
+          context.arc(this.x + sweep * 6, this.y, this.radius * (0.72 + Math.abs(sweep) * 0.12), -1.1 + sweep * 0.28, 1 + sweep * 0.28);
+          context.stroke();
+        }
+        context.strokeStyle = this.secondaryColor;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius * 0.56, -1.4, 1.2);
+        context.stroke();
+        break;
       case "wind":
       case "dive":
         context.strokeStyle = this.color;
@@ -927,6 +1508,8 @@ class InputManager {
   constructor() {
     this.keyboardDown = new Set();
     this.keyboardPressed = new Set();
+    this.touchDown = new Set();
+    this.touchPressed = new Set();
     this.gamepads = [this.createGamepadSlot(0), this.createGamepadSlot(1)];
     this.connectedCount = 0;
     this.preventedKeys = new Set([
@@ -952,6 +1535,7 @@ class InputManager {
     document.addEventListener("keyup", (event) => this.onKeyUp(event));
     window.addEventListener("gamepadconnected", () => this.pollGamepads());
     window.addEventListener("gamepaddisconnected", () => this.pollGamepads());
+    this.bindTouchButtons(ui.touchButtons);
   }
 
   createGamepadSlot(slot) {
@@ -983,6 +1567,40 @@ class InputManager {
     this.keyboardDown.delete(event.code);
   }
 
+  bindTouchButtons(buttons) {
+    buttons.forEach((button) => {
+      const actionName = button.dataset.touchAction;
+      if (!actionName) {
+        return;
+      }
+
+      const release = (event) => {
+        if (event) {
+          event.preventDefault();
+        }
+        this.touchDown.delete(actionName);
+        button.classList.remove("active");
+      };
+
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        if (!this.touchDown.has(actionName)) {
+          this.touchPressed.add(actionName);
+        }
+        this.touchDown.add(actionName);
+        button.classList.add("active");
+        if (button.setPointerCapture) {
+          button.setPointerCapture(event.pointerId);
+        }
+      });
+
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("lostpointercapture", release);
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+    });
+  }
+
   pollGamepads() {
     const rawPads = navigator.getGamepads ? navigator.getGamepads() : [];
     this.connectedCount = 0;
@@ -995,7 +1613,7 @@ class InputManager {
       if (rawPad && rawPad.connected) {
         this.connectedCount += 1;
         state.connected = true;
-        state.id = rawPad.id || `PS5 Controller ${slot + 1}`;
+        state.id = rawPad.id || `Controller ${slot + 1}`;
         state.axes = [rawPad.axes[0] ?? 0, rawPad.axes[1] ?? 0];
         state.buttonsPressed = Array(state.buttonsDown.length).fill(false);
 
@@ -1068,9 +1686,26 @@ class InputManager {
     return action;
   }
 
+  getTouchAction() {
+    const action = DEFAULT_ACTION();
+    action.left = this.touchDown.has("left");
+    action.right = this.touchDown.has("right");
+    action.jumpPressed = this.touchPressed.has("jump");
+    action.attackPressed = this.touchPressed.has("attack");
+    action.specialPressed = this.touchPressed.has("special");
+    action.abilityPressed = this.touchPressed.has("ability");
+    action.block = this.touchDown.has("block");
+    action.pausePressed = this.touchPressed.has("pause");
+    return action;
+  }
+
   getActionForChoice(choice, slot) {
     if (choice === "keyboard") {
       return this.getKeyboardAction(slot);
+    }
+
+    if (choice === "touch") {
+      return this.getTouchAction();
     }
 
     const controllerSlot = getControllerSlotFromChoice(choice);
@@ -1096,6 +1731,7 @@ class InputManager {
 
   endFrame() {
     this.keyboardPressed.clear();
+    this.touchPressed.clear();
     for (const pad of this.gamepads) {
       pad.buttonsPressed.fill(false);
     }
@@ -1164,6 +1800,16 @@ class Player {
     this.shieldTimer = 0;
     this.unstoppableTimer = 0;
     this.featherWindowTimer = 0;
+    this.counterWindowTimer = 0;
+    this.invisibleTimer = 0;
+    this.surgeTrailTimer = 0;
+    this.frozenTimer = 0;
+    this.burnAuraTimer = 0;
+    this.illusionTimer = 0;
+    this.overloadTimer = 0;
+    this.bloodrushTimer = 0;
+    this.glideTimer = 0;
+    this.standfastTimer = 0;
   }
 
   spawn(x, y, facing) {
@@ -1173,23 +1819,76 @@ class Player {
     this.facing = facing;
   }
 
-  getMoveSpeed() {
-    if (this.character.id === "tank" && this.unstoppableTimer > 0) {
-      return this.stats.moveSpeed * 0.78;
+  getMissingLives() {
+    return Math.max(0, GAME.stockLives - this.lives);
+  }
+
+  getBerserkerBoost() {
+    if (this.character.id !== "berserker" || this.bloodrushTimer <= 0) {
+      return 1;
     }
-    return this.stats.moveSpeed;
+
+    const missingLivesBoost = this.getMissingLives() * 0.13;
+    const damageBoost = Math.min(this.damagePercent, 180) * 0.0011;
+    return 1 + missingLivesBoost + damageBoost;
+  }
+
+  getMoveSpeed() {
+    let speed = this.stats.moveSpeed;
+
+    if (this.character.id === "tank" && this.unstoppableTimer > 0) {
+      speed *= 0.78;
+    }
+    if (this.character.id === "titan" && this.standfastTimer > 0) {
+      speed *= 0.62;
+    }
+    if (this.character.id === "cyborg" && this.overloadTimer > 0) {
+      speed *= 1.2;
+    }
+    if (this.character.id === "assassine" && this.invisibleTimer > 0) {
+      speed *= 1.08;
+    }
+    if (this.frozenTimer > 0) {
+      speed *= 0.58;
+    }
+
+    return speed;
   }
 
   getAirSpeed() {
+    let speed = this.stats.airSpeed;
+
     if (this.character.id === "tank" && this.unstoppableTimer > 0) {
-      return this.stats.airSpeed * 0.8;
+      speed *= 0.8;
     }
-    return this.stats.airSpeed;
+    if (this.character.id === "titan" && this.standfastTimer > 0) {
+      speed *= 0.64;
+    }
+    if (this.character.id === "cyborg" && this.overloadTimer > 0) {
+      speed *= 1.15;
+    }
+    if (this.character.id === "windlaeufer" && this.glideTimer > 0) {
+      speed *= 1.15;
+    }
+    if (this.frozenTimer > 0) {
+      speed *= 0.6;
+    }
+
+    return speed;
   }
 
   getOutgoingKnockbackMultiplier() {
     if (this.character.id === "boxer" && this.rageTimer > 0) {
       return 1.34;
+    }
+    if (this.character.id === "feuerlord" && this.burnAuraTimer > 0) {
+      return 1.28;
+    }
+    if (this.character.id === "cyborg" && this.overloadTimer > 0) {
+      return 1.18;
+    }
+    if (this.character.id === "berserker") {
+      return this.getBerserkerBoost();
     }
     return 1;
   }
@@ -1197,6 +1896,22 @@ class Player {
   getOutgoingDamageMultiplier() {
     if (this.character.id === "boxer" && this.rageTimer > 0) {
       return 1.15;
+    }
+    if (this.character.id === "feuerlord" && this.burnAuraTimer > 0) {
+      return 1.12;
+    }
+    if (this.character.id === "cyborg" && this.overloadTimer > 0) {
+      return 1.14;
+    }
+    if (this.character.id === "berserker") {
+      return 1 + (this.getBerserkerBoost() - 1) * 0.72;
+    }
+    return 1;
+  }
+
+  getGravityScale() {
+    if (this.character.id === "windlaeufer" && this.glideTimer > 0 && this.vy > 0) {
+      return 0.42;
     }
     return 1;
   }
@@ -1236,11 +1951,24 @@ class Player {
     this.shieldTimer = Math.max(0, this.shieldTimer - dt);
     this.unstoppableTimer = Math.max(0, this.unstoppableTimer - dt);
     this.featherWindowTimer = Math.max(0, this.featherWindowTimer - dt);
+    this.counterWindowTimer = Math.max(0, this.counterWindowTimer - dt);
+    this.invisibleTimer = Math.max(0, this.invisibleTimer - dt);
+    this.surgeTrailTimer = Math.max(0, this.surgeTrailTimer - dt);
+    this.frozenTimer = Math.max(0, this.frozenTimer - dt);
+    this.burnAuraTimer = Math.max(0, this.burnAuraTimer - dt);
+    this.illusionTimer = Math.max(0, this.illusionTimer - dt);
+    this.overloadTimer = Math.max(0, this.overloadTimer - dt);
+    this.bloodrushTimer = Math.max(0, this.bloodrushTimer - dt);
+    this.glideTimer = Math.max(0, this.glideTimer - dt);
+    this.standfastTimer = Math.max(0, this.standfastTimer - dt);
     this.effectTimer = Math.max(0, this.effectTimer - dt);
 
     const canControl = game.controlsEnabled && this.lockTimer <= 0 && this.hitTimer <= 0;
     const moveInput = canControl ? ((actionInput.left ? -1 : 0) + (actionInput.right ? 1 : 0)) : 0;
     this.blocking = Boolean(canControl && actionInput.block && this.onGround && this.shieldTimer <= 0);
+    if (this.character.id === "samurai" && this.counterWindowTimer > 0) {
+      this.blocking = true;
+    }
 
     if (moveInput !== 0 && !this.blocking) {
       this.facing = moveInput;
@@ -1322,7 +2050,116 @@ class Player {
       });
     }
 
-    this.vy += GAME.gravity * dt;
+    if (this.character.id === "samurai" && this.counterWindowTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.08;
+      game.spawnParticleBurst(this.x + this.facing * 16, this.y - 28, this.accent, 3, {
+        speed: 84,
+        life: 0.18,
+        size: 3,
+        shape: "streak",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "assassine" && this.invisibleTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.06;
+      game.spawnParticleBurst(this.x, this.y - 22, this.accent, 3, {
+        speed: 82,
+        life: 0.18,
+        size: 3,
+        shape: "smoke",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "blitzkaempfer" && this.surgeTrailTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.04;
+      game.spawnParticleBurst(this.x - this.facing * 10, this.y - 24, this.accent, 5, {
+        speed: 120,
+        life: 0.14,
+        size: 2.6,
+        shape: "streak",
+        gravity: 0,
+      });
+    }
+
+    if (this.frozenTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.12;
+      game.spawnParticleBurst(this.x, this.y - 24, "#e9f9ff", 4, {
+        speed: 44,
+        life: 0.24,
+        size: 3.2,
+        shape: "dot",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "feuerlord" && this.burnAuraTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.06;
+      game.spawnParticleBurst(this.x, this.y - 18, this.accent, 4, {
+        speed: 98,
+        life: 0.2,
+        size: 3.2,
+        shape: "streak",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "schattenkrieger" && this.illusionTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.07;
+      game.spawnParticleBurst(this.x - this.facing * 18, this.y - 24, this.accent, 4, {
+        speed: 86,
+        life: 0.2,
+        size: 3.2,
+        shape: "smoke",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "cyborg" && this.overloadTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.06;
+      game.spawnParticleBurst(this.x, this.y - 22, this.accent, 4, {
+        speed: 96,
+        life: 0.18,
+        size: 2.8,
+        shape: "ring",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "berserker" && this.bloodrushTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.07;
+      game.spawnParticleBurst(this.x, this.y - 20, this.accent, 4, {
+        speed: 94,
+        life: 0.22,
+        size: 3,
+        shape: "ring",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "windlaeufer" && this.glideTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.05;
+      game.spawnParticleBurst(this.x, this.y - 12, this.secondary, 3, {
+        speed: 108,
+        life: 0.18,
+        size: 2.8,
+        shape: "streak",
+        gravity: 0,
+      });
+    }
+
+    if (this.character.id === "titan" && this.standfastTimer > 0 && this.effectTimer <= 0) {
+      this.effectTimer = 0.08;
+      game.spawnParticleBurst(this.x, this.y + 2, this.accent, 4, {
+        speed: 86,
+        life: 0.24,
+        size: 3.6,
+        shape: "dust",
+      });
+    }
+
+    this.vy += GAME.gravity * this.getGravityScale() * dt;
 
     const previousY = this.y;
     const previousOnGround = this.onGround;
@@ -1506,6 +2343,249 @@ class Player {
           size: 3,
           shape: "streak",
           gravity: 0,
+        });
+        break;
+      case "samurai":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "slash",
+          followOwner: true,
+          offsetX: 72,
+          offsetY: -22,
+          width: 122,
+          height: 50,
+          ttl: 0.12,
+          damage: this.character.normalDamage,
+          knockbackX: 610,
+          knockbackY: 220,
+          color: this.accent,
+          secondaryColor: this.secondary,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 52, this.y - 28, this.accent, 10, {
+          speed: 175,
+          life: 0.18,
+          size: 3,
+          shape: "streak",
+          gravity: 0,
+        });
+        break;
+      case "assassine":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "slash",
+          followOwner: true,
+          offsetX: 58,
+          offsetY: -18,
+          width: 84,
+          height: 46,
+          ttl: 0.1,
+          damage: this.character.normalDamage,
+          knockbackX: 490,
+          knockbackY: 180,
+          color: this.accent,
+          secondaryColor: "#effff2",
+        });
+        game.spawnParticleBurst(this.x + this.facing * 36, this.y - 24, this.accent, 8, {
+          speed: 165,
+          life: 0.16,
+          size: 2.8,
+          shape: "smoke",
+          gravity: 0,
+        });
+        break;
+      case "blitzkaempfer":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "electric",
+          followOwner: true,
+          offsetX: 64,
+          offsetY: -20,
+          width: 106,
+          height: 52,
+          ttl: 0.11,
+          damage: this.character.normalDamage,
+          knockbackX: 560,
+          knockbackY: 210,
+          color: this.color,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 46, this.y - 24, this.color, 10, {
+          speed: 180,
+          life: 0.16,
+          size: 2.6,
+          shape: "streak",
+          gravity: 0,
+        });
+        break;
+      case "eiswaechter":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "frost",
+          followOwner: true,
+          offsetX: 62,
+          offsetY: -18,
+          width: 96,
+          height: 52,
+          ttl: 0.14,
+          damage: this.character.normalDamage,
+          knockbackX: 580,
+          knockbackY: 230,
+          color: this.color,
+          secondaryColor: this.secondary,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 46, this.y - 20, this.accent, 9, {
+          speed: 140,
+          life: 0.2,
+          size: 3.2,
+          shape: "dot",
+          gravity: 0,
+        });
+        break;
+      case "feuerlord":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "flame",
+          followOwner: true,
+          offsetX: 66,
+          offsetY: -18,
+          width: 108,
+          height: 58,
+          ttl: 0.13,
+          damage: this.character.normalDamage,
+          knockbackX: 630,
+          knockbackY: 240,
+          color: this.color,
+          secondaryColor: this.accent,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 48, this.y - 22, this.accent, 10, {
+          speed: 165,
+          life: 0.2,
+          size: 3,
+          shape: "streak",
+          gravity: 0,
+        });
+        break;
+      case "schattenkrieger":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "slash",
+          followOwner: true,
+          offsetX: 62,
+          offsetY: -18,
+          width: 98,
+          height: 52,
+          ttl: 0.12,
+          damage: this.character.normalDamage,
+          knockbackX: 540,
+          knockbackY: 205,
+          color: this.accent,
+          secondaryColor: this.secondary,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 44, this.y - 24, this.accent, 10, {
+          speed: 155,
+          life: 0.18,
+          size: 3,
+          shape: "smoke",
+          gravity: 0,
+        });
+        break;
+      case "cyborg":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "impact",
+          followOwner: true,
+          offsetX: 66,
+          offsetY: -18,
+          width: 110,
+          height: 56,
+          ttl: 0.13,
+          damage: this.character.normalDamage,
+          knockbackX: 610,
+          knockbackY: 248,
+          color: this.color,
+          secondaryColor: this.accent,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 52, this.y - 22, this.accent, 8, {
+          speed: 145,
+          life: 0.18,
+          size: 3,
+          shape: "ring",
+          gravity: 0,
+        });
+        break;
+      case "berserker":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "slash",
+          followOwner: true,
+          offsetX: 70,
+          offsetY: -18,
+          width: 114,
+          height: 58,
+          ttl: 0.14,
+          damage: this.character.normalDamage,
+          knockbackX: 675,
+          knockbackY: 280,
+          color: this.accent,
+          secondaryColor: this.secondary,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 52, this.y - 18, this.accent, 12, {
+          speed: 170,
+          life: 0.2,
+          size: 3.2,
+          shape: "ring",
+          gravity: 0,
+        });
+        break;
+      case "windlaeufer":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "wind",
+          followOwner: true,
+          offsetX: 66,
+          offsetY: -16,
+          width: 102,
+          height: 58,
+          ttl: 0.12,
+          damage: this.character.normalDamage,
+          knockbackX: 520,
+          knockbackY: 310,
+          color: this.color,
+          secondaryColor: this.secondary,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 48, this.y - 16, this.color, 9, {
+          speed: 175,
+          life: 0.18,
+          size: 3,
+          shape: "streak",
+          gravity: 0,
+        });
+        break;
+      case "titan":
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "impact",
+          followOwner: true,
+          offsetX: 74,
+          offsetY: -14,
+          width: 126,
+          height: 74,
+          ttl: 0.18,
+          damage: this.character.normalDamage,
+          knockbackX: 760,
+          knockbackY: 320,
+          color: this.color,
+          secondaryColor: this.accent,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 58, this.y - 6, this.accent, 12, {
+          speed: 120,
+          life: 0.24,
+          size: 4,
+          shape: "dust",
         });
         break;
       default:
@@ -1695,6 +2775,323 @@ class Player {
         game.shake(6, 0.18);
         game.sound.play("special");
         break;
+      case "samurai":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.24;
+        this.attackPoseTimer = 0.34;
+        game.schedule(0.1, () => {
+          this.emitHitbox(game, {
+            type: "circle",
+            visual: "multi-slash",
+            x: this.x + this.facing * 10,
+            y: this.y - 24,
+            radius: 58,
+            maxRadius: 104,
+            expansion: 260,
+            ttl: 0.28,
+            damage: this.character.specialDamage,
+            knockbackX: 820,
+            knockbackY: 310,
+            color: this.accent,
+            secondaryColor: this.secondary,
+            flash: true,
+          });
+          game.spawnParticleBurst(this.x, this.y - 26, this.accent, 18, {
+            speed: 210,
+            life: 0.24,
+            size: 3,
+            shape: "streak",
+            gravity: 0,
+          });
+          game.shake(7, 0.18);
+          game.sound.play("special");
+        });
+        break;
+      case "assassine":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.18;
+        this.attackPoseTimer = 0.3;
+        for (let hitIndex = 0; hitIndex < 3; hitIndex += 1) {
+          game.schedule(0.06 * hitIndex, () => {
+            this.emitHitbox(game, {
+              type: "box",
+              visual: "slash",
+              followOwner: true,
+              offsetX: 54 + hitIndex * 10,
+              offsetY: -20 + (hitIndex % 2 === 0 ? -4 : 4),
+              width: 100,
+              height: 48,
+              ttl: 0.1,
+              damage: this.character.specialDamage * 0.48,
+              knockbackX: 360 + hitIndex * 80,
+              knockbackY: 160 + hitIndex * 25,
+              color: this.accent,
+              secondaryColor: "#effff0",
+              flash: true,
+            });
+            game.spawnParticleBurst(this.x + this.facing * 36, this.y - 24, this.accent, 8, {
+              speed: 180,
+              life: 0.16,
+              size: 2.8,
+              shape: "smoke",
+              gravity: 0,
+            });
+          });
+        }
+        game.shake(5, 0.16);
+        game.sound.play("special");
+        break;
+      case "blitzkaempfer":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.18;
+        this.attackPoseTimer = 0.28;
+        this.emitHitbox(game, {
+          type: "projectile",
+          visual: "electric",
+          x: this.x + this.facing * 48,
+          y: this.y - 26,
+          radius: 28,
+          ttl: 0.56,
+          vx: this.facing * 760,
+          vy: 0,
+          damage: this.character.specialDamage,
+          knockbackX: 860,
+          knockbackY: 260,
+          color: this.color,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 26, this.y - 24, this.color, 16, {
+          speed: 210,
+          life: 0.2,
+          size: 2.8,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.shake(7, 0.18);
+        game.sound.play("special");
+        break;
+      case "eiswaechter":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.24;
+        this.attackPoseTimer = 0.34;
+        game.schedule(0.12, () => {
+          this.emitHitbox(game, {
+            type: "circle",
+            visual: "frost",
+            x: this.x,
+            y: this.y - 22,
+            radius: 42,
+            maxRadius: 170,
+            expansion: 500,
+            ttl: 0.36,
+            damage: this.character.specialDamage,
+            knockbackX: 790,
+            knockbackY: 260,
+            color: this.color,
+            secondaryColor: this.secondary,
+            flash: true,
+          });
+          game.spawnParticleBurst(this.x, this.y - 24, this.accent, 20, {
+            speed: 150,
+            life: 0.28,
+            size: 3.4,
+            shape: "dot",
+            gravity: 0,
+          });
+          game.shake(6, 0.18);
+          game.sound.play("special");
+        });
+        break;
+      case "feuerlord":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.24;
+        this.attackPoseTimer = 0.34;
+        game.schedule(0.1, () => {
+          this.emitHitbox(game, {
+            type: "circle",
+            visual: "flame",
+            x: this.x + this.facing * 40,
+            y: this.y - 22,
+            radius: 44,
+            maxRadius: 132,
+            expansion: 380,
+            ttl: 0.34,
+            damage: this.character.specialDamage,
+            knockbackX: 900,
+            knockbackY: 320,
+            color: this.color,
+            secondaryColor: this.accent,
+            flash: true,
+          });
+          game.spawnParticleBurst(this.x + this.facing * 32, this.y - 22, this.accent, 20, {
+            speed: 205,
+            life: 0.26,
+            size: 3.2,
+            shape: "streak",
+            gravity: 0,
+          });
+          game.shake(8, 0.2);
+          game.sound.play("special");
+        });
+        break;
+      case "schattenkrieger":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.2;
+        this.attackPoseTimer = 0.32;
+        game.schedule(0.1, () => {
+          this.emitHitbox(game, {
+            type: "circle",
+            visual: "shadow-burst",
+            x: this.x + this.facing * 26,
+            y: this.y - 24,
+            radius: 34,
+            maxRadius: 136,
+            expansion: 420,
+            ttl: 0.32,
+            damage: this.character.specialDamage,
+            knockbackX: 790,
+            knockbackY: 260,
+            color: this.accent,
+            secondaryColor: this.secondary,
+            flash: true,
+          });
+          game.spawnParticleBurst(this.x + this.facing * 22, this.y - 24, this.accent, 18, {
+            speed: 170,
+            life: 0.24,
+            size: 3.2,
+            shape: "smoke",
+            gravity: 0,
+          });
+          game.shake(7, 0.18);
+          game.sound.play("special");
+        });
+        break;
+      case "cyborg":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.attackPoseTimer = 0.34;
+        this.lockTimer = 0.16;
+        this.vx = this.facing * 840;
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "rocket",
+          followOwner: true,
+          offsetX: 58,
+          offsetY: -18,
+          width: 132,
+          height: 64,
+          ttl: 0.18,
+          damage: this.character.specialDamage,
+          knockbackX: 920,
+          knockbackY: 300,
+          color: this.accent,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x - this.facing * 18, this.y - 18, this.accent, 16, {
+          speed: 190,
+          life: 0.2,
+          size: 3.2,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.shake(8, 0.18);
+        game.sound.play("special");
+        break;
+      case "berserker":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.24;
+        this.attackPoseTimer = 0.36;
+        this.emitHitbox(game, {
+          type: "circle",
+          visual: "multi-slash",
+          followOwner: true,
+          offsetX: 0,
+          offsetY: -18,
+          radius: 52,
+          maxRadius: 78,
+          ttl: 0.34,
+          damage: this.character.specialDamage,
+          knockbackX: 940,
+          knockbackY: 350,
+          color: this.accent,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x, this.y - 18, this.accent, 18, {
+          speed: 200,
+          life: 0.24,
+          size: 3.2,
+          shape: "ring",
+          gravity: 0,
+        });
+        game.shake(8, 0.2);
+        game.sound.play("special");
+        break;
+      case "windlaeufer":
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.18;
+        this.attackPoseTimer = 0.3;
+        this.emitHitbox(game, {
+          type: "circle",
+          visual: "tornado",
+          x: this.x + this.facing * 36,
+          y: this.y - 18,
+          radius: 46,
+          maxRadius: 110,
+          expansion: 280,
+          ttl: 0.32,
+          damage: this.character.specialDamage,
+          knockbackX: 760,
+          knockbackY: 390,
+          color: this.color,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x + this.facing * 26, this.y - 16, this.secondary, 18, {
+          speed: 180,
+          life: 0.22,
+          size: 3,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.shake(6, 0.18);
+        game.sound.play("special");
+        break;
+      case "titan":
+        if (!this.onGround) {
+          return;
+        }
+        this.specialCooldown = this.stats.specialCooldown;
+        this.lockTimer = 0.28;
+        this.attackPoseTimer = 0.4;
+        game.schedule(0.12, () => {
+          this.emitHitbox(game, {
+            type: "circle",
+            visual: "quake",
+            x: this.x,
+            y: GAME.platform.y - 2,
+            radius: 60,
+            maxRadius: 210,
+            expansion: 560,
+            ttl: 0.4,
+            damage: this.character.specialDamage,
+            knockbackX: 1020,
+            knockbackY: 420,
+            color: this.accent,
+            secondaryColor: this.secondary,
+            flash: true,
+          });
+          game.spawnParticleBurst(this.x, GAME.platform.y - 8, this.accent, 24, {
+            speed: 215,
+            life: 0.32,
+            size: 4,
+            shape: "dust",
+          });
+          game.shake(10, 0.24);
+          game.sound.play("special");
+        });
+        break;
       default:
         break;
     }
@@ -1790,12 +3187,219 @@ class Player {
         });
         game.sound.play("ability");
         break;
+      case "samurai":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.counterWindowTimer = this.stats.abilityDuration;
+        this.lockTimer = 0.06;
+        game.spawnParticleBurst(this.x + this.facing * 18, this.y - 28, this.accent, 14, {
+          speed: 140,
+          life: 0.22,
+          size: 3,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "assassine":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.invisibleTimer = this.stats.abilityDuration;
+        this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.16);
+        game.spawnParticleBurst(this.x, this.y - 22, this.accent, 16, {
+          speed: 150,
+          life: 0.24,
+          size: 3,
+          shape: "smoke",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "blitzkaempfer":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.surgeTrailTimer = this.stats.abilityDuration;
+        this.lockTimer = 0.05;
+        this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.18);
+        this.vx = this.facing * 980;
+        this.emitHitbox(game, {
+          type: "box",
+          visual: "dash",
+          followOwner: true,
+          offsetX: 46,
+          offsetY: -20,
+          width: 112,
+          height: 54,
+          ttl: 0.14,
+          damage: 5,
+          knockbackX: 410,
+          knockbackY: 160,
+          color: this.color,
+          secondaryColor: this.secondary,
+          flash: true,
+        });
+        game.spawnParticleBurst(this.x, this.y - 22, this.color, 18, {
+          speed: 180,
+          life: 0.18,
+          size: 2.8,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "eiswaechter": {
+        this.abilityCooldown = this.stats.abilityCooldown;
+        const target = game.getOpponent(this);
+        if (target && Math.abs(target.x - this.x) < 250 && Math.abs(target.y - this.y) < 140) {
+          target.frozenTimer = Math.max(target.frozenTimer, this.stats.abilityDuration);
+          game.spawnParticleBurst(target.x, target.y - 24, this.accent, 18, {
+            speed: 90,
+            life: 0.26,
+            size: 3.2,
+            shape: "dot",
+            gravity: 0,
+          });
+        }
+        game.spawnParticleBurst(this.x, this.y - 22, this.secondary, 16, {
+          speed: 120,
+          life: 0.24,
+          size: 3.2,
+          shape: "ring",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      }
+      case "feuerlord":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.burnAuraTimer = this.stats.abilityDuration;
+        game.spawnParticleBurst(this.x, this.y - 20, this.accent, 20, {
+          speed: 160,
+          life: 0.24,
+          size: 3.2,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "schattenkrieger": {
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.illusionTimer = this.stats.abilityDuration;
+        this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.14);
+        const cloneX = this.x - this.facing * 36;
+        game.spawnParticleBurst(cloneX, this.y - 22, this.accent, 18, {
+          speed: 130,
+          life: 0.24,
+          size: 3.2,
+          shape: "smoke",
+          gravity: 0,
+        });
+        game.schedule(0.12, () => {
+          this.emitHitbox(game, {
+            type: "box",
+            visual: "slash",
+            x: cloneX + this.facing * 28,
+            y: this.y - 26,
+            width: 104,
+            height: 48,
+            ttl: 0.12,
+            damage: 8,
+            knockbackX: 510,
+            knockbackY: 190,
+            color: this.accent,
+            secondaryColor: this.secondary,
+          });
+        });
+        game.sound.play("ability");
+        break;
+      }
+      case "cyborg":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.overloadTimer = this.stats.abilityDuration;
+        game.spawnParticleBurst(this.x, this.y - 20, this.accent, 18, {
+          speed: 140,
+          life: 0.22,
+          size: 3,
+          shape: "ring",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "berserker":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.bloodrushTimer = this.stats.abilityDuration;
+        game.spawnParticleBurst(this.x, this.y - 18, this.accent, 20, {
+          speed: 150,
+          life: 0.24,
+          size: 3.2,
+          shape: "ring",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "windlaeufer":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.glideTimer = this.stats.abilityDuration;
+        this.bonusJumpsAvailable = Math.max(this.bonusJumpsAvailable, 1);
+        if (this.vy > -160) {
+          this.vy = -160;
+        }
+        game.spawnParticleBurst(this.x, this.y - 16, this.secondary, 18, {
+          speed: 170,
+          life: 0.22,
+          size: 2.8,
+          shape: "streak",
+          gravity: 0,
+        });
+        game.sound.play("ability");
+        break;
+      case "titan":
+        this.abilityCooldown = this.stats.abilityCooldown;
+        this.standfastTimer = this.stats.abilityDuration;
+        game.spawnParticleBurst(this.x, this.y - 6, this.accent, 20, {
+          speed: 110,
+          life: 0.26,
+          size: 4,
+          shape: "dust",
+        });
+        game.sound.play("ability");
+        break;
       default:
         break;
     }
   }
 
   applyHit(source, game) {
+    if (this.character.id === "samurai" && this.counterWindowTimer > 0) {
+      this.counterWindowTimer = 0;
+      this.lockTimer = 0.1;
+      this.hitTimer = 0;
+      this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.16);
+      game.sound.play("block");
+      game.spawnParticleBurst(this.x + this.facing * 18, this.y - 26, this.secondary, 14, {
+        speed: 150,
+        life: 0.22,
+        size: 3,
+        shape: "streak",
+        gravity: 0,
+      });
+      this.emitHitbox(game, {
+        type: "box",
+        visual: "slash",
+        followOwner: true,
+        offsetX: 78,
+        offsetY: -22,
+        width: 122,
+        height: 54,
+        ttl: 0.12,
+        damage: this.character.specialDamage * 0.85,
+        knockbackX: 820,
+        knockbackY: 260,
+        color: this.accent,
+        secondaryColor: this.secondary,
+        flash: true,
+      });
+      game.shake(6, 0.12);
+      return;
+    }
+
     const direction = Math.sign(this.x - source.owner.x) || source.owner.facing || 1;
     let blockFactor = this.blocking ? this.stats.blockMultiplier : 1;
     let damageFactor = this.blocking ? 0.45 : 1;
@@ -1811,6 +3415,24 @@ class Player {
       blockFactor *= 0.24;
       damageFactor *= 0.72;
       resistance *= 3.3;
+    }
+
+    if (this.character.id === "titan" && this.standfastTimer > 0) {
+      blockFactor *= 0.18;
+      damageFactor *= 0.68;
+      resistance *= 3.8;
+    }
+
+    if (this.character.id === "assassine" && this.invisibleTimer > 0) {
+      blockFactor *= 0.82;
+      damageFactor *= 0.72;
+      resistance *= 1.42;
+    }
+
+    if (this.character.id === "schattenkrieger" && this.illusionTimer > 0) {
+      blockFactor *= 0.8;
+      damageFactor *= 0.78;
+      resistance *= 1.24;
     }
 
     const damageGain = (source.damage ?? 8) * damageFactor;
@@ -1851,7 +3473,10 @@ class Player {
     const walkCycle = Math.sin(elapsed * 0.016 * Math.max(1, Math.abs(this.vx) * 0.018));
     const isAttacking = this.attackPoseTimer > 0;
     const isHit = this.hitTimer > 0;
-    const alpha = this.invulnerableTimer > 0 ? 0.82 + Math.sin(elapsed * 0.03) * 0.14 : 1;
+    const stealthAlpha = this.character.id === "assassine" && this.invisibleTimer > 0
+      ? 0.38 + Math.sin(elapsed * 0.03) * 0.08
+      : 1;
+    const alpha = (this.invulnerableTimer > 0 ? 0.82 + Math.sin(elapsed * 0.03) * 0.14 : 1) * stealthAlpha;
     const bodyColor = isHit ? "#ffffff" : this.color;
     const accent = this.accent;
     const crouchOffset = this.blocking ? 10 : 0;
@@ -1876,6 +3501,30 @@ class Player {
     context.globalAlpha = alpha;
     context.lineCap = "round";
     context.lineJoin = "round";
+
+    if (this.character.id === "schattenkrieger" && this.illusionTimer > 0) {
+      context.save();
+      context.translate(-this.facing * 34, -2);
+      context.globalAlpha = 0.18;
+      context.strokeStyle = this.accent;
+      context.lineWidth = 5;
+      context.beginPath();
+      context.arc(0, headY, 15, 0, Math.PI * 2);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(0, headY + 16);
+      context.lineTo(0, hipY);
+      context.moveTo(0, shoulderY);
+      context.lineTo(handFrontX, handFrontY);
+      context.moveTo(0, shoulderY);
+      context.lineTo(handBackX, handBackY);
+      context.moveTo(0, hipY);
+      context.lineTo(footFrontX, footFrontY);
+      context.moveTo(0, hipY);
+      context.lineTo(footBackX, footBackY);
+      context.stroke();
+      context.restore();
+    }
 
     if (this.character.id === "boxer" && this.rageTimer > 0) {
       context.save();
@@ -1911,8 +3560,61 @@ class Player {
       context.restore();
     }
 
+    if (this.character.id === "feuerlord" && this.burnAuraTimer > 0) {
+      context.save();
+      context.globalAlpha = 0.24;
+      context.fillStyle = this.accent;
+      context.beginPath();
+      context.arc(0, -20, 48, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    if (this.character.id === "cyborg" && this.overloadTimer > 0) {
+      context.save();
+      context.globalAlpha = 0.2;
+      context.strokeStyle = this.accent;
+      context.lineWidth = 4;
+      context.beginPath();
+      context.arc(0, -20, 44, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+
+    if (this.character.id === "berserker" && this.bloodrushTimer > 0) {
+      context.save();
+      context.globalAlpha = 0.2;
+      context.fillStyle = this.accent;
+      context.beginPath();
+      context.arc(0, -18, 46, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    if (this.character.id === "windlaeufer" && this.glideTimer > 0) {
+      context.save();
+      context.globalAlpha = 0.16;
+      context.strokeStyle = this.secondary;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(0, -18, 44, -1.2, 1.2);
+      context.stroke();
+      context.restore();
+    }
+
+    if (this.character.id === "titan" && this.standfastTimer > 0) {
+      context.save();
+      context.globalAlpha = 0.22;
+      context.strokeStyle = this.accent;
+      context.lineWidth = 6;
+      context.beginPath();
+      context.arc(0, -16, 54, 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+
     context.strokeStyle = bodyColor;
-    context.lineWidth = this.character.id === "tank" ? 7 : 6;
+    context.lineWidth = HEAVY_CHARACTER_IDS.has(this.character.id) ? 7 : 6;
     context.shadowBlur = 16;
     context.shadowColor = accent;
 
@@ -2004,6 +3706,105 @@ class Player {
         context.moveTo(-8, shoulderY + 6);
         context.lineTo(12, shoulderY + 20);
         context.stroke();
+        break;
+      case "samurai":
+        context.beginPath();
+        context.moveTo(-12, headY - 16);
+        context.lineTo(12, headY - 14);
+        context.stroke();
+        context.strokeRect(-14, shoulderY - 6, 12, 10);
+        context.beginPath();
+        context.moveTo(12, handFrontY - 6);
+        context.lineTo(40, handFrontY - 18);
+        context.stroke();
+        break;
+      case "assassine":
+        context.beginPath();
+        context.moveTo(-12, headY - 12);
+        context.lineTo(0, headY - 24);
+        context.lineTo(10, headY - 12);
+        context.stroke();
+        context.fillStyle = this.accent;
+        context.beginPath();
+        context.arc(-5, headY - 2, 1.8, 0, Math.PI * 2);
+        context.arc(5, headY - 2, 1.8, 0, Math.PI * 2);
+        context.fill();
+        break;
+      case "blitzkaempfer":
+        context.beginPath();
+        context.moveTo(-12, headY - 14);
+        context.lineTo(-2, headY - 26);
+        context.lineTo(8, headY - 16);
+        context.lineTo(16, headY - 28);
+        context.stroke();
+        break;
+      case "eiswaechter":
+        context.beginPath();
+        context.moveTo(-10, headY - 16);
+        context.lineTo(-3, headY - 26);
+        context.lineTo(4, headY - 18);
+        context.lineTo(12, headY - 28);
+        context.stroke();
+        context.beginPath();
+        context.arc(-18, shoulderY + 2, 3, 0, Math.PI * 2);
+        context.arc(18, shoulderY + 2, 3, 0, Math.PI * 2);
+        context.fill();
+        break;
+      case "feuerlord":
+        context.beginPath();
+        context.moveTo(-10, headY - 18);
+        context.lineTo(-2, headY - 28);
+        context.lineTo(6, headY - 16);
+        context.lineTo(14, headY - 26);
+        context.stroke();
+        break;
+      case "schattenkrieger":
+        context.beginPath();
+        context.moveTo(-12, headY - 2);
+        context.lineTo(12, headY - 4);
+        context.stroke();
+        context.beginPath();
+        context.moveTo(-10, shoulderY + 10);
+        context.lineTo(-24, handBackY + 10);
+        context.moveTo(12, shoulderY + 6);
+        context.lineTo(28, handFrontY + 4);
+        context.stroke();
+        break;
+      case "cyborg":
+        context.strokeRect(-12, shoulderY - 10, 24, 18);
+        context.fillStyle = this.accent;
+        context.beginPath();
+        context.arc(0, shoulderY - 2, 3.5, 0, Math.PI * 2);
+        context.fill();
+        break;
+      case "berserker":
+        context.beginPath();
+        context.moveTo(-12, headY - 16);
+        context.lineTo(12, headY - 12);
+        context.stroke();
+        context.beginPath();
+        context.moveTo(16, handFrontY - 4);
+        context.lineTo(36, handFrontY - 18);
+        context.lineTo(42, handFrontY - 2);
+        context.closePath();
+        context.stroke();
+        break;
+      case "windlaeufer":
+        context.beginPath();
+        context.moveTo(footFrontX - 4, footFrontY);
+        context.lineTo(footFrontX + 12, footFrontY - 2);
+        context.moveTo(footBackX - 4, footBackY);
+        context.lineTo(footBackX + 12, footBackY - 2);
+        context.stroke();
+        context.beginPath();
+        context.arc(0, shoulderY - 8, 8, 0.2, 2.6);
+        context.stroke();
+        break;
+      case "titan":
+        context.strokeRect(-22, shoulderY - 8, 44, 24);
+        context.strokeRect(-18, shoulderY - 22, 14, 12);
+        context.strokeRect(4, shoulderY - 22, 14, 12);
+        context.strokeRect(-8, shoulderY - 2, 16, 16);
         break;
       default:
         break;
@@ -2236,7 +4037,7 @@ class ArenaGame {
       if (bot.specialCooldown <= 0 && chance(finishWindow ? profile.finishSpecialChance : profile.specialChance)) {
         memory.specialQueued = true;
       }
-    } else if (distance < profile.rangedDistance && bot.character.id === "magier" && chance(profile.rangedAttackChance)) {
+    } else if (distance < profile.rangedDistance && RANGED_ATTACKER_IDS.has(bot.character.id) && chance(profile.rangedAttackChance)) {
       memory.attackQueued = true;
     } else if (distance < profile.specialDistance && bot.specialCooldown <= 0 && chance(profile.longSpecialChance)) {
       memory.specialQueued = true;
@@ -2266,6 +4067,56 @@ class ArenaGame {
           break;
         case "springer":
           if ((dy < -40 || nearPlatformEdge || chance(0.18)) && chance(profile.abilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "samurai":
+          if (distance < 170 && target.attackPoseTimer > 0 && chance(profile.finishAbilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "assassine":
+          if ((distance < 180 || nearPlatformEdge) && chance(profile.abilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "blitzkaempfer":
+          if ((distance > 120 || nearPlatformEdge) && chance(profile.abilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "eiswaechter":
+          if (distance < 230 && (target.attackPoseTimer > 0 || target.damagePercent > 45) && chance(profile.finishAbilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "feuerlord":
+          if (distance < 180 && (finishWindow || chance(profile.abilityChance))) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "schattenkrieger":
+          if (distance < 180 && (target.attackPoseTimer > 0 || chance(profile.abilityChance))) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "cyborg":
+          if (distance < 190 && (finishWindow || chance(profile.abilityChance))) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "berserker":
+          if ((bot.lives < GAME.stockLives || finishWindow || bot.damagePercent > 60) && chance(profile.finishAbilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "windlaeufer":
+          if ((!bot.onGround || nearPlatformEdge || dy < -20) && chance(profile.abilityChance)) {
+            memory.abilityQueued = true;
+          }
+          break;
+        case "titan":
+          if (distance < 190 && (targetNearPlatformEdge || target.damagePercent > 70) && chance(profile.finishAbilityChance)) {
             memory.abilityQueued = true;
           }
           break;
@@ -2687,10 +4538,21 @@ function updateGuidePanel(player, titleElement, moveElement, attackElement, abil
     moveElement.textContent = `${inputLabel}: ${formatKeyCode(mapping.left)}/${formatKeyCode(mapping.right)} bewegen | ${formatKeyCode(mapping.jump)} springen | ${formatKeyCode(mapping.block)} blocken`;
     attackElement.textContent = `${formatKeyCode(mapping.attack)} ${player.character.normalAttackName} | ${formatKeyCode(mapping.special)} ${player.character.specialName}`;
     abilityElement.textContent = `${formatKeyCode(mapping.ability[0])} ${player.character.abilityName} | ${formatKeyCode(mapping.pause[0])} Pause`;
+  } else if (player.inputChoice === "touch") {
+    moveElement.textContent = `${inputLabel}: Links/Rechts auf dem Display | Sprung-Button | Block-Button`;
+    attackElement.textContent = `Angriff ${player.character.normalAttackName} | Spezial ${player.character.specialName}`;
+    abilityElement.textContent = `Faehigkeit ${player.character.abilityName} | Pause-Button`;
   } else {
-    moveElement.textContent = `${inputLabel}: Stick oder D-Pad bewegen | X springen | L1 blocken`;
-    attackElement.textContent = `Kreis ${player.character.normalAttackName} | Quadrat ${player.character.specialName}`;
-    abilityElement.textContent = `Dreieck ${player.character.abilityName} | Options Pause`;
+    const scheme = getControllerSchemeFromChoice(player.inputChoice);
+    if (scheme === "xbox") {
+      moveElement.textContent = `${inputLabel}: Stick oder Steuerkreuz bewegen | A springen | LB blocken`;
+      attackElement.textContent = `B ${player.character.normalAttackName} | X ${player.character.specialName}`;
+      abilityElement.textContent = `Y ${player.character.abilityName} | Menu Pause`;
+    } else {
+      moveElement.textContent = `${inputLabel}: Stick oder D-Pad bewegen | X springen | L1 blocken`;
+      attackElement.textContent = `Kreis ${player.character.normalAttackName} | Quadrat ${player.character.specialName}`;
+      abilityElement.textContent = `Dreieck ${player.character.abilityName} | Options Pause`;
+    }
   }
 }
 
@@ -2699,6 +4561,17 @@ function getHumanDetailKeyboardText(slot) {
     return "A/D bewegen, W springen, S blocken, F normaler Angriff, G Spezialangriff, H neue Faehigkeit.";
   }
   return "Pfeile links/rechts bewegen, Pfeil hoch springen, Pfeil runter blocken, K normaler Angriff, L Spezialangriff, M oder Oe neue Faehigkeit.";
+}
+
+function getCharacterRatings(character) {
+  const stats = character.gameplay;
+  return [
+    { label: "Tempo", value: clamp(Math.round((stats.moveSpeed - 250) / 45), 1, 5) },
+    { label: "Sprung", value: clamp(Math.round((stats.jumpForce - 670) / 42), 1, 5) },
+    { label: "Defensive", value: clamp(Math.round((stats.resistance - 0.78) * 6.6), 1, 5) },
+    { label: "Power", value: clamp(Math.round((stats.attackKnockback - 430) / 85 + (character.normalDamage - 6) * 0.5), 1, 5) },
+    { label: "Spezial", value: clamp(Math.round((character.specialDamage - 8) / 2.1), 1, 5) },
+  ];
 }
 
 function updateCharacterDetail() {
@@ -2720,12 +4593,17 @@ function updateCharacterDetail() {
   ui.detailAbilityName.textContent = character.abilityName;
   ui.detailAbilityDescription.textContent = character.abilityDescription;
   ui.detailAbilityCooldown.textContent = `Cooldown: ${character.gameplay.abilityCooldown.toFixed(1)} s`;
+  const selectedChoice = appState.selectingSlot === 2 ? appState.inputSelections.player2 : appState.inputSelections.player1;
   ui.detailKeyboardControls.textContent = isBotSlot
     ? getKeyboardControlTextForSlot(2, true)
     : getHumanDetailKeyboardText(appState.selectingSlot);
-  ui.detailControllerControls.textContent = isBotSlot
-    ? getControllerControlText(true)
-    : getControllerControlText(false);
+  if (selectedChoice === "touch") {
+    ui.detailControllerControls.textContent = getTouchControlText();
+  } else {
+    ui.detailControllerControls.textContent = isBotSlot
+      ? getControllerControlText(true)
+      : getControllerControlText(false, getControllerSchemeFromChoice(selectedChoice));
+  }
   ui.detailPros.textContent = character.pros;
   ui.detailCons.textContent = character.cons;
 
@@ -2737,9 +4615,32 @@ function updateCharacterDetail() {
     ui.detailStats.appendChild(chip);
   }
 
+  const ratingGrid = document.createElement("div");
+  ratingGrid.className = "rating-grid";
+  for (const rating of getCharacterRatings(character)) {
+    const row = document.createElement("div");
+    row.className = "rating-row";
+    row.innerHTML = `
+      <span class="rating-label">${rating.label}</span>
+      <span class="rating-track"><span class="rating-fill" style="width:${(rating.value / 5) * 100}%"></span></span>
+      <span class="rating-value">${rating.value}/5</span>
+    `;
+    ratingGrid.appendChild(row);
+  }
+  ui.detailStats.appendChild(ratingGrid);
+
+  let selectedCard = null;
   [...ui.characterGrid.children].forEach((card) => {
-    card.classList.toggle("selected", card.dataset.characterId === character.id);
+    const isSelected = card.dataset.characterId === character.id;
+    card.classList.toggle("selected", isSelected);
+    if (isSelected) {
+      selectedCard = card;
+    }
   });
+
+  if (selectedCard && appState.screen === "characterScreen") {
+    selectedCard.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
 }
 
 function renderCharacterCards() {
@@ -2803,8 +4704,11 @@ function validateSetup() {
   if (appState.mode === "local") {
     const p1 = appState.inputSelections.player1;
     const p2 = appState.inputSelections.player2;
-    if (p1.startsWith("controller") && p1 === p2) {
+    if (isControllerChoice(p1) && isControllerChoice(p2) && getControllerSlotFromChoice(p1) === getControllerSlotFromChoice(p2)) {
       return { ok: false, message: "Spieler 1 und Spieler 2 duerfen nicht denselben Controller benutzen." };
+    }
+    if (p1 === "touch" && p2 === "touch") {
+      return { ok: false, message: "Handy Touch kann aktuell nur von einem Spieler gleichzeitig benutzt werden." };
     }
   }
 
@@ -2817,7 +4721,7 @@ function validateSetup() {
     if (controllerSlot !== null && !inputManager.hasController(controllerSlot)) {
       return {
         ok: false,
-        message: `${INPUT_LABELS[choice]} ist aktuell nicht verbunden. Bitte PS5-Controller verbinden und eine Taste druecken.`,
+        message: `${INPUT_LABELS[choice]} ist aktuell nicht verbunden. Bitte Ps- oder Xbox-Controller verbinden und eine Taste druecken.`,
       };
     }
   }
@@ -2830,7 +4734,14 @@ function updateControllerStatusCard(cardElement, slot, state) {
   const copy = cardElement.querySelector(".controller-status-copy");
   cardElement.classList.toggle("connected", state.connected);
   cardElement.classList.toggle("missing", !state.connected);
-  title.textContent = state.connected ? "Verbunden" : "Nicht verbunden";
+  const family = detectControllerFamilyFromId(state.id);
+  title.textContent = state.connected
+    ? family === "xbox"
+      ? "Xbox verbunden"
+      : family === "ps"
+        ? "Ps verbunden"
+        : "Controller verbunden"
+    : "Nicht verbunden";
   copy.textContent = state.connected
     ? (state.id.length > 62 ? `${state.id.slice(0, 62)}...` : state.id)
     : "Kein Gamepad erkannt.";
@@ -2851,18 +4762,22 @@ function refreshModeScreen() {
 
   updateControllerStatusCard(ui.controllerStatus0, 0, inputManager.gamepads[0]);
   updateControllerStatusCard(ui.controllerStatus1, 1, inputManager.gamepads[1]);
-  ui.controllerWarningText.hidden = inputManager.connectedCount > 0;
+  const relevantChoices = appState.mode === "bot"
+    ? [appState.inputSelections.player1]
+    : [appState.inputSelections.player1, appState.inputSelections.player2];
+  const expectsController = relevantChoices.some((choice) => isControllerChoice(choice));
+  ui.controllerWarningText.hidden = !expectsController || inputManager.connectedCount > 0;
 
   if (appState.mode === "bot") {
-    ui.setupSubtitle.textContent = `Lege nur fuer Spieler 1 fest, ob du mit Tastatur, PS5 Controller 1 oder PS5 Controller 2 spielst. Slot 2 wird von der Bot-KI auf ${getBotDifficultyConfig(appState.botDifficulty).label} uebernommen.`;
+    ui.setupSubtitle.textContent = `Lege nur fuer Spieler 1 fest, ob du mit Tastatur, Handy Touch, Ps- oder Xbox-Controller spielst. Slot 2 wird von der Bot-KI auf ${getBotDifficultyConfig(appState.botDifficulty).label} uebernommen.`;
     ui.player2AssignmentLabel.textContent = "Spieler 2";
     ui.player2AssignmentTitle.textContent = "Bot-KI";
     ui.player2AssignmentCopy.textContent = `Der Bot uebernimmt Slot 2 automatisch. Schwierigkeit: ${getBotDifficultyConfig(appState.botDifficulty).label}.`;
   } else {
-    ui.setupSubtitle.textContent = "Waehle fuer beide Spieler ein eigenes Input-Profil. Tastatur und Controller koennen gemischt werden.";
+    ui.setupSubtitle.textContent = "Waehle fuer beide Spieler ein eigenes Input-Profil. Tastatur, Handy Touch sowie Ps- und Xbox-Controller koennen gemischt werden.";
     ui.player2AssignmentLabel.textContent = "Spieler 2";
     ui.player2AssignmentTitle.textContent = "Input-Profil";
-    ui.player2AssignmentCopy.textContent = "Waehle ein separates Profil. Derselbe Controller kann nicht beiden Spielern gleichzeitig zugewiesen werden.";
+    ui.player2AssignmentCopy.textContent = "Waehle ein separates Profil. Derselbe Controller oder doppelter Handy-Touch kann nicht beiden Spielern gleichzeitig zugewiesen werden.";
   }
 
   ui.player2AssignmentCard.hidden = appState.mode === "bot";
@@ -2873,7 +4788,13 @@ function refreshModeScreen() {
     const playerKey = button.dataset.player === "1" ? "player1" : "player2";
     const selected = appState.inputSelections[playerKey] === button.dataset.input;
     const controllerSlot = getControllerSlotFromChoice(button.dataset.input);
-    const unavailable = controllerSlot !== null && !inputManager.hasController(controllerSlot);
+    const otherPlayerKey = playerKey === "player1" ? "player2" : "player1";
+    const otherChoice = appState.inputSelections[otherPlayerKey];
+    const otherControllerSlot = getControllerSlotFromChoice(otherChoice);
+    const unavailable =
+      (controllerSlot !== null && !inputManager.hasController(controllerSlot)) ||
+      (appState.mode === "local" && controllerSlot !== null && otherControllerSlot !== null && controllerSlot === otherControllerSlot && !selected) ||
+      (button.dataset.input === "touch" && otherChoice === "touch" && appState.mode === "local");
     button.classList.toggle("selected", selected);
     button.classList.toggle("unavailable", unavailable);
   });
@@ -2889,9 +4810,9 @@ function openCharacterSelection() {
   appState.selections.player1 = null;
   appState.selections.player2 = null;
   appState.selectedCharacterId = appState.lastSelections.player1 || CHARACTER_DATA[0].id;
+  showScreen("characterScreen");
   updateSelectionHeader();
   updateCharacterDetail();
-  showScreen("characterScreen");
 }
 
 function continueFromSetup() {
@@ -2950,6 +4871,25 @@ function hidePauseOverlay() {
   ui.pauseOverlay.classList.add("hidden");
 }
 
+function getActiveTouchPlayer(players = []) {
+  return players.find((player) => !player.isBot && player.inputChoice === "touch") ?? null;
+}
+
+function refreshTouchControls(players = game.players) {
+  const touchPlayer = getActiveTouchPlayer(players);
+  const shouldShow = Boolean(touchPlayer && appState.screen === "battleScreen" && game.active);
+  ui.touchControls.hidden = !shouldShow;
+
+  if (!shouldShow) {
+    return;
+  }
+
+  ui.touchStatusLabel.textContent = `Handy Touch aktiv - ${touchPlayer.label}`;
+  ui.touchButtons.forEach((button) => {
+    button.classList.toggle("active", inputManager.touchDown.has(button.dataset.touchAction));
+  });
+}
+
 function pauseMatch(kind, eyebrow, title, message) {
   if (!game.active || game.matchOver) {
     return;
@@ -2970,7 +4910,7 @@ function resumeMatch() {
       "controller",
       "Controller fehlt",
       "Verbindung unterbrochen",
-      `${missing.join(" und ")} fehlt gerade. Bitte PS5-Controller verbinden und eine Taste druecken.`,
+      `${missing.join(" und ")} fehlt gerade. Bitte Ps- oder Xbox-Controller verbinden und eine Taste druecken.`,
     );
     return;
   }
@@ -3009,6 +4949,7 @@ function resetToMenu() {
   game.stopMatch();
   hidePauseOverlay();
   appState.mode = null;
+  ui.touchControls.hidden = true;
   showScreen("mainMenu");
 }
 
@@ -3023,7 +4964,7 @@ function refreshLiveBattleWarnings() {
       "controller",
       "Controller fehlt",
       "Verbindung unterbrochen",
-      `${missing.join(" und ")} wurde getrennt. Bitte PS5-Controller verbinden und eine Taste druecken.`,
+      `${missing.join(" und ")} wurde getrennt. Bitte Ps- oder Xbox-Controller verbinden und eine Taste druecken.`,
     );
   }
 }
@@ -3115,6 +5056,7 @@ function appTick(timestamp) {
   lastTimestamp = timestamp;
 
   inputManager.pollGamepads();
+  refreshTouchControls();
 
   if (appState.screen === "modeScreen") {
     refreshModeScreen();

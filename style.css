@@ -397,6 +397,11 @@ h3 {
   opacity: 0.48;
 }
 
+.input-option-button[data-input="touch"] {
+  border-color: rgba(255, 216, 106, 0.22);
+  background: rgba(22, 18, 8, 0.7);
+}
+
 .bot-difficulty-panel {
   margin: 8px 0 28px;
   padding: 24px;
@@ -517,8 +522,28 @@ h3 {
 
 .character-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+  max-height: min(980px, calc(100vh - 210px));
+  overflow-y: auto;
+  padding-right: 8px;
+  align-content: start;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(72, 243, 255, 0.45) rgba(8, 17, 38, 0.6);
+}
+
+.character-grid::-webkit-scrollbar {
+  width: 10px;
+}
+
+.character-grid::-webkit-scrollbar-track {
+  background: rgba(8, 17, 38, 0.6);
+  border-radius: 999px;
+}
+
+.character-grid::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(72, 243, 255, 0.75), rgba(255, 111, 233, 0.75));
+  border-radius: 999px;
 }
 
 .character-card {
@@ -598,6 +623,8 @@ h3 {
   background: rgba(7, 16, 36, 0.94);
   border: 1px solid rgba(124, 200, 255, 0.16);
   min-height: 100%;
+  position: sticky;
+  top: 18px;
 }
 
 .detail-badge {
@@ -640,6 +667,43 @@ h3 {
   flex-wrap: wrap;
   gap: 10px;
   margin: 24px 0 28px;
+}
+
+.rating-grid {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.rating-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+}
+
+.rating-label,
+.rating-value {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.rating-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(12, 25, 56, 0.84);
+  border: 1px solid rgba(124, 200, 255, 0.12);
+}
+
+.rating-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  box-shadow: 0 0 14px rgba(72, 243, 255, 0.22);
 }
 
 .battle-screen {
@@ -786,6 +850,82 @@ canvas {
   background: #020611;
 }
 
+.touch-controls {
+  position: absolute;
+  inset: auto 18px 18px 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.touch-status-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 132px;
+  display: flex;
+  justify-content: center;
+}
+
+.touch-status-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(4, 10, 24, 0.82);
+  border: 1px solid rgba(124, 200, 255, 0.16);
+  color: var(--cyan);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+}
+
+.touch-cluster {
+  display: grid;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.touch-move-cluster {
+  grid-template-columns: repeat(2, minmax(0, 112px));
+}
+
+.touch-action-cluster {
+  grid-template-columns: repeat(3, minmax(0, 96px));
+}
+
+.touch-button {
+  min-height: 58px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(124, 200, 255, 0.18);
+  background: linear-gradient(180deg, rgba(12, 26, 58, 0.9), rgba(6, 14, 32, 0.92));
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-button:active,
+.touch-button.active {
+  transform: translateY(1px) scale(0.98);
+  border-color: rgba(72, 243, 255, 0.44);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 20px rgba(72, 243, 255, 0.18);
+}
+
+.touch-button-muted {
+  color: var(--muted);
+}
+
 .battle-guides,
 .damage-hud {
   position: absolute;
@@ -911,6 +1051,7 @@ canvas {
 .overlay-card {
   position: absolute;
   inset: 50% auto auto 50%;
+  z-index: 5;
   transform: translate(-50%, -50%);
   transition: opacity 160ms ease, transform 160ms ease;
 }
@@ -995,7 +1136,12 @@ canvas {
   }
 
   .character-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+  }
+
+  .character-detail {
+    position: static;
   }
 
   .setup-header,
@@ -1013,6 +1159,22 @@ canvas {
   .damage-card {
     width: min(280px, calc(50% - 18px));
   }
+
+  .touch-controls {
+    inset: auto 12px 12px 12px;
+  }
+
+  .touch-status-row {
+    bottom: 126px;
+  }
+
+  .touch-move-cluster {
+    grid-template-columns: repeat(2, minmax(0, 96px));
+  }
+
+  .touch-action-cluster {
+    grid-template-columns: repeat(3, minmax(0, 84px));
+  }
 }
 
 @media (max-width: 720px) {
@@ -1026,6 +1188,34 @@ canvas {
   .panel-heading {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .character-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .touch-controls {
+    inset: auto 10px 10px 10px;
+    gap: 12px;
+  }
+
+  .touch-status-row {
+    bottom: 156px;
+  }
+
+  .touch-move-cluster {
+    grid-template-columns: repeat(2, minmax(0, 82px));
+  }
+
+  .touch-action-cluster {
+    grid-template-columns: repeat(3, minmax(0, 74px));
+  }
+
+  .touch-button {
+    min-height: 52px;
+    padding: 10px 8px;
+    border-radius: 16px;
+    font-size: 0.85rem;
   }
 
   .panel-heading-actions {

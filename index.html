@@ -24,9 +24,9 @@
         <div class="hero-tags">
           <span>Canvas Arena</span>
           <span>2 Spieler oder Bot</span>
-          <span>5 Kaempfer</span>
+          <span>15 Kaempfer</span>
           <span>Neue Faehigkeiten</span>
-          <span>PS5-Controller Support</span>
+          <span>Ps, Xbox und Handy Support</span>
         </div>
 
         <button id="startButton" class="primary-button">Spiel starten</button>
@@ -114,7 +114,7 @@
               <p class="eyebrow">Schritt 1C</p>
               <h3>Eingaben waehlen</h3>
               <p id="setupSubtitle" class="section-copy">
-                Lege pro Spieler fest, ob ihr mit Tastatur oder mit einem PS5-Controller spielt.
+                Lege pro Spieler fest, ob ihr mit Tastatur, Controller oder Handy-Touch spielt.
               </p>
             </div>
 
@@ -124,7 +124,7 @@
           <div class="controller-panel">
             <div class="controller-panel-heading">
               <strong>Controller-Status</strong>
-              <span>Controller werden live erkannt. Druecke bei Bedarf eine Taste am PS5-Controller.</span>
+              <span>Ps- und Xbox-Controller werden live erkannt. Druecke bei Bedarf eine Taste am Controller.</span>
             </div>
 
             <div class="controller-status-grid">
@@ -142,7 +142,7 @@
             </div>
 
             <p id="controllerWarningText" class="controller-warning" hidden>
-              Kein Controller erkannt. Bitte PS5-Controller verbinden und eine Taste druecken.
+              Kein kompatibler Controller erkannt. Bitte Ps- oder Xbox-Controller verbinden und eine Taste druecken.
             </p>
           </div>
 
@@ -150,11 +150,14 @@
             <div class="input-assignment-card">
               <span class="detail-label">Spieler 1</span>
               <strong>Input-Profil</strong>
-              <p class="section-copy">Tastatur oder einer der verbundenen PS5-Controller.</p>
+              <p class="section-copy">Tastatur, Handy-Touch oder einer der verbundenen Ps-/Xbox-Controller.</p>
               <div class="input-option-list">
                 <button class="input-option-button" data-player="1" data-input="keyboard" type="button">Tastatur</button>
-                <button class="input-option-button" data-player="1" data-input="controller0" type="button">PS5 Controller 1</button>
-                <button class="input-option-button" data-player="1" data-input="controller1" type="button">PS5 Controller 2</button>
+                <button class="input-option-button" data-player="1" data-input="touch" type="button">Handy Touch</button>
+                <button class="input-option-button" data-player="1" data-input="controller0ps" type="button">Ps Controller 1</button>
+                <button class="input-option-button" data-player="1" data-input="controller1ps" type="button">Ps Controller 2</button>
+                <button class="input-option-button" data-player="1" data-input="controller0xbox" type="button">Xbox Controller 1</button>
+                <button class="input-option-button" data-player="1" data-input="controller1xbox" type="button">Xbox Controller 2</button>
               </div>
             </div>
 
@@ -166,8 +169,11 @@
               </p>
               <div id="player2InputOptions" class="input-option-list">
                 <button class="input-option-button" data-player="2" data-input="keyboard" type="button">Tastatur</button>
-                <button class="input-option-button" data-player="2" data-input="controller0" type="button">PS5 Controller 1</button>
-                <button class="input-option-button" data-player="2" data-input="controller1" type="button">PS5 Controller 2</button>
+                <button class="input-option-button" data-player="2" data-input="touch" type="button">Handy Touch</button>
+                <button class="input-option-button" data-player="2" data-input="controller0ps" type="button">Ps Controller 1</button>
+                <button class="input-option-button" data-player="2" data-input="controller1ps" type="button">Ps Controller 2</button>
+                <button class="input-option-button" data-player="2" data-input="controller0xbox" type="button">Xbox Controller 1</button>
+                <button class="input-option-button" data-player="2" data-input="controller1xbox" type="button">Xbox Controller 2</button>
               </div>
             </div>
           </div>
@@ -234,7 +240,7 @@
             </div>
 
             <div class="detail-block">
-              <span class="detail-label">Controllersteuerung</span>
+              <span class="detail-label">Controller / Handy</span>
               <p id="detailControllerControls"></p>
             </div>
 
@@ -358,6 +364,26 @@
             <div class="overlay-actions">
               <button id="resumeButton" class="primary-button">Fortsetzen</button>
               <button id="pauseMenuButton" class="secondary-button">Zur&uuml;ck zum Men&uuml;</button>
+            </div>
+          </div>
+
+          <div id="touchControls" class="touch-controls" hidden>
+            <div class="touch-status-row">
+              <span id="touchStatusLabel" class="touch-status-label">Handy Touch aktiv</span>
+            </div>
+
+            <div class="touch-cluster touch-move-cluster">
+              <button class="touch-button touch-button-wide" data-touch-action="left" type="button">Links</button>
+              <button class="touch-button touch-button-wide" data-touch-action="right" type="button">Rechts</button>
+            </div>
+
+            <div class="touch-cluster touch-action-cluster">
+              <button class="touch-button touch-button-small" data-touch-action="block" type="button">Block</button>
+              <button class="touch-button touch-button-small" data-touch-action="jump" type="button">Sprung</button>
+              <button class="touch-button touch-button-small" data-touch-action="attack" type="button">Angriff</button>
+              <button class="touch-button touch-button-small" data-touch-action="special" type="button">Spezial</button>
+              <button class="touch-button touch-button-small" data-touch-action="ability" type="button">Faehigkeit</button>
+              <button class="touch-button touch-button-small touch-button-muted" data-touch-action="pause" type="button">Pause</button>
             </div>
           </div>
         </div>
