@@ -192,7 +192,8 @@ const GAMEPAD_ACTION_BUTTONS = {
 };
 const GAMEPAD_AXIS_THRESHOLD = 0.35;
 const PLAYSTATION_ID_HINTS = ["dualsense", "dualshock", "wireless controller", "playstation", "sony", "054c", "ps5", "ps4"];
-const INPUT_BUFFER_WINDOW = 0.12;
+const INPUT_BUFFER_WINDOW = 0.18;
+const JUMP_COYOTE_WINDOW = 0.1;
 const BUFFERED_ACTION_NAMES = ["jump", "attack", "special", "ability"];
 const DEFAULT_CONTROLLER_CALIBRATION = {
   jump: 0,
@@ -2310,6 +2311,7 @@ class Player {
     this.bloodrushTimer = 0;
     this.glideTimer = 0;
     this.standfastTimer = 0;
+    this.groundGraceTimer = 0;
     this.inputBuffer = createInputBufferState();
   }
 
@@ -2424,9 +2426,12 @@ class Player {
   }
 
   bufferInput(actionInput) {
+    const previousInputState = this.inputState;
     this.inputState = cloneAction(actionInput);
     for (const actionName of BUFFERED_ACTION_NAMES) {
-      if (actionInput.pressedActions[actionName]) {
+      const newlyPressed = Boolean(actionInput.pressedActions[actionName]);
+      const newlyHeld = Boolean(actionInput.heldActions[actionName]) && !Boolean(previousInputState?.heldActions?.[actionName]);
+      if (newlyPressed || newlyHeld) {
         this.inputBuffer[actionName] = INPUT_BUFFER_WINDOW;
       }
     }
@@ -2445,7 +2450,7 @@ class Player {
   }
 
   canUseJump() {
-    const standardJumpAvailable = this.onGround || this.jumpsUsed < this.stats.jumps;
+    const standardJumpAvailable = this.onGround || this.groundGraceTimer > 0 || this.jumpsUsed < this.stats.jumps;
     const bonusJumpAvailable = !standardJumpAvailable && this.bonusJumpsAvailable > 0;
     return standardJumpAvailable || bonusJumpAvailable;
   }
@@ -2496,6 +2501,10 @@ class Player {
     this.glideTimer = Math.max(0, this.glideTimer - dt);
     this.standfastTimer = Math.max(0, this.standfastTimer - dt);
     this.effectTimer = Math.max(0, this.effectTimer - dt);
+    this.groundGraceTimer = Math.max(0, this.groundGraceTimer - dt);
+    if (this.onGround) {
+      this.groundGraceTimer = JUMP_COYOTE_WINDOW;
+    }
     this.tickInputBuffer(dt);
     this.bufferInput(actionInput);
 
@@ -2745,6 +2754,7 @@ class Player {
     }
 
     this.onGround = false;
+    this.groundGraceTimer = 0;
     this.vy = -this.stats.jumpForce;
 
     if (this.character.id === "springer" && (this.jumpsUsed > 1 || bonusJumpAvailable)) {
