@@ -23,13 +23,23 @@
 
         <div class="hero-tags">
           <span>Canvas Arena</span>
-          <span>2 Spieler oder Bot</span>
+          <span>Lokal, Bot oder Online</span>
           <span>15 Kaempfer</span>
           <span>Neue Faehigkeiten</span>
           <span>Ps, Xbox und Handy Support</span>
         </div>
 
-        <button id="startButton" class="primary-button">Spiel starten</button>
+        <div class="hero-mode-actions">
+          <div class="hero-primary-actions">
+            <button id="quickLocalButton" class="hero-menu-button" type="button">Lokal spielen</button>
+            <button id="quickBotButton" class="hero-menu-button" type="button">Gegen Bot spielen</button>
+            <button id="quickOnlineButton" class="hero-menu-button" type="button">Online spielen</button>
+          </div>
+
+          <div class="hero-secondary-action">
+            <button id="startButton" class="hero-menu-button hero-menu-button-wide" type="button">Alle Optionen ansehen</button>
+          </div>
+        </div>
 
         <div class="quick-controls">
           <div>
@@ -48,7 +58,7 @@
       <div class="panel mode-panel">
         <p class="eyebrow">Schritt 1</p>
         <h2>Kampfmodus waehlen</h2>
-        <p class="section-copy">Vor jeder Runde legst du fest, ob ihr lokal spielt oder gegen einen Bot antretet.</p>
+        <p class="section-copy">Vor jeder Runde legst du fest, ob ihr lokal spielt, gegen einen Bot antretet oder online in einen Raum geht.</p>
 
         <div class="mode-grid">
           <button class="mode-card" data-mode="local">
@@ -61,6 +71,12 @@
             <span class="mode-tag">Solo</span>
             <strong>Gegen Bot spielen</strong>
             <p>Ein reaktiver Gegner mit 4 Schwierigkeitsstufen von Anfaenger bis beinahe unschlagbar.</p>
+          </button>
+
+          <button class="mode-card" data-mode="online">
+            <span class="mode-tag">Online</span>
+            <strong>Online spielen</strong>
+            <p>Erstelle einen Raumcode, joine mit einem Freund und kaempft ueber WebSockets gegeneinander.</p>
           </button>
         </div>
 
@@ -146,6 +162,56 @@
             </p>
           </div>
 
+          <div class="input-test-panel">
+            <div class="input-test-heading">
+              <div>
+                <strong>Eingabe-Test</strong>
+                <p class="section-copy">
+                  Druecke eine Taste auf der Tastatur oder einen Button auf einem verbundenen Controller.
+                  Das Spiel zeigt dir sofort, welche Aktion erkannt wurde.
+                </p>
+              </div>
+
+              <div class="input-test-readout">
+                <span id="inputTestAction" class="input-test-pill">Noch keine Eingabe</span>
+                <span id="inputTestSource" class="input-test-source">Warte auf Tastatur-, Ps- oder Xbox-Eingabe.</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="controllerDebugPanel" class="controller-debug-panel">
+            <div class="controller-panel-heading">
+              <strong>Controller-Debug</strong>
+              <span>Zeigt live Name, Index, Buttons, linken Stick und erkannte Aktionen der verbundenen Controller.</span>
+            </div>
+
+            <div class="controller-debug-grid">
+              <div id="controllerDebug0" class="controller-debug-card">
+                <span class="controller-slot-label">Debug Controller 1</span>
+                <strong class="controller-debug-title">Kein Controller aktiv</strong>
+                <div class="controller-debug-data">
+                  <p><span>Name</span><strong data-debug-name>-</strong></p>
+                  <p><span>Index</span><strong data-debug-index>-</strong></p>
+                  <p><span>Buttons</span><strong data-debug-buttons>Keine</strong></p>
+                  <p><span>Stick</span><strong data-debug-axes>x: 0.00 | y: 0.00</strong></p>
+                  <p><span>Aktionen</span><strong data-debug-actions>Keine Aktion</strong></p>
+                </div>
+              </div>
+
+              <div id="controllerDebug1" class="controller-debug-card">
+                <span class="controller-slot-label">Debug Controller 2</span>
+                <strong class="controller-debug-title">Kein Controller aktiv</strong>
+                <div class="controller-debug-data">
+                  <p><span>Name</span><strong data-debug-name>-</strong></p>
+                  <p><span>Index</span><strong data-debug-index>-</strong></p>
+                  <p><span>Buttons</span><strong data-debug-buttons>Keine</strong></p>
+                  <p><span>Stick</span><strong data-debug-axes>x: 0.00 | y: 0.00</strong></p>
+                  <p><span>Aktionen</span><strong data-debug-actions>Keine Aktion</strong></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="input-assignment-grid">
             <div class="input-assignment-card">
               <span class="detail-label">Spieler 1</span>
@@ -181,6 +247,81 @@
           <p id="setupErrorText" class="setup-error"></p>
         </div>
 
+        <div id="onlinePanel" class="online-panel" hidden>
+          <div class="setup-header">
+            <div>
+              <p class="eyebrow">Schritt 1D</p>
+              <h3>Online-Lobby</h3>
+              <p id="onlineSubtitle" class="section-copy">
+                Erstelle einen Raum oder tritt mit einem Code bei. Sobald dein Gegner verbunden ist, geht es weiter zur Charakterauswahl.
+              </p>
+            </div>
+
+            <div class="panel-heading-actions">
+              <button id="onlineCreateRoomButton" class="primary-button" type="button">Raum erstellen</button>
+              <button id="onlineJoinRoomButton" class="secondary-button" type="button">Raum beitreten</button>
+            </div>
+          </div>
+
+          <div class="online-room-grid">
+            <div class="online-room-card">
+              <span class="detail-label">Raum-Zugang</span>
+              <strong>Raumcode und Status</strong>
+              <p class="section-copy">
+                Gib einen Code ein oder erstelle einen neuen Raum. Online funktioniert ueber den Node-Server mit WebSockets.
+              </p>
+
+              <div class="online-code-row">
+                <input id="onlineRoomCodeInput" class="online-input" type="text" maxlength="8" placeholder="Raumcode eingeben">
+                <button id="onlineCopyRoomCodeButton" class="secondary-button" type="button">Code kopieren</button>
+              </div>
+
+              <div class="online-status-stack">
+                <div class="online-status-line">
+                  <span>Verbindung</span>
+                  <strong id="onlineConnectionValue">Offline</strong>
+                </div>
+                <div class="online-status-line">
+                  <span>Raumcode</span>
+                  <strong id="onlineRoomCodeValue">Kein Raum</strong>
+                </div>
+                <div class="online-status-line">
+                  <span>Gegner</span>
+                  <strong id="onlineOpponentValue">Warte auf zweiten Spieler...</strong>
+                </div>
+                <div class="online-status-line">
+                  <span>Ping</span>
+                  <strong id="onlinePingValue">-- ms</strong>
+                </div>
+              </div>
+
+              <p id="onlineServerHint" class="section-copy">
+                Wenn kein Server erkannt wird, starte `npm install` und danach `npm start`.
+              </p>
+
+              <div class="panel-heading-actions online-room-actions">
+                <button id="onlineContinueButton" class="primary-button" type="button" disabled>Zur Charakterauswahl</button>
+                <button id="onlineLeaveRoomButton" class="secondary-button" type="button">Zurueck zum Menue</button>
+              </div>
+            </div>
+
+            <div class="online-room-card">
+              <span class="detail-label">Warteraum-Chat</span>
+              <strong>Nur vor dem Kampf aktiv</strong>
+              <p class="section-copy">Schreibe deinem Freund kurz im Warteraum. Im Kampf wird der Chat automatisch deaktiviert.</p>
+
+              <div id="onlineChatMessages" class="online-chat-messages"></div>
+
+              <div class="online-chat-row">
+                <input id="onlineChatInput" class="online-input" type="text" maxlength="160" placeholder="Nachricht schreiben">
+                <button id="onlineChatSendButton" class="primary-button" type="button">Senden</button>
+              </div>
+            </div>
+          </div>
+
+          <p id="onlineErrorText" class="setup-error" hidden></p>
+        </div>
+
         <button id="modeBackButton" class="secondary-button">Zur&uuml;ck</button>
       </div>
     </section>
@@ -197,6 +338,7 @@
           </div>
 
           <div class="panel-heading-actions">
+            <button id="onlineStartBattleButton" class="primary-button" type="button" hidden>Kampf starten</button>
             <button id="confirmCharacterTopButton" class="primary-button">Spieler 1 bestaetigen</button>
             <button id="characterBackButton" class="secondary-button">Zur&uuml;ck</button>
           </div>
@@ -257,6 +399,25 @@
 
             <div id="detailStats" class="stat-cluster"></div>
 
+            <div id="onlineCharacterPanel" class="online-character-panel" hidden>
+              <span class="detail-label">Online-Raum</span>
+              <strong id="onlineCharacterRoomLabel">Raum: ----</strong>
+              <p id="onlineCharacterStatus" class="section-copy">
+                Bestaetige deinen Charakter. Sobald beide Spieler bereit sind, kann der Host den Kampf starten.
+              </p>
+
+              <div class="online-selection-grid">
+                <div class="online-selection-card">
+                  <span>Du</span>
+                  <strong id="onlineLocalSelectionValue">Nicht bestaetigt</strong>
+                </div>
+                <div class="online-selection-card">
+                  <span>Gegner</span>
+                  <strong id="onlineRemoteSelectionValue">Warte...</strong>
+                </div>
+              </div>
+            </div>
+
             <button id="confirmCharacterButton" class="primary-button">Charakter bestaetigen</button>
           </aside>
         </div>
@@ -290,6 +451,8 @@
           <div class="hud-center">
             <div id="modeBadge" class="mode-badge">Gegen Bot</div>
             <div class="hud-tip">ESC pausiert</div>
+            <div id="networkBadge" class="hud-tip network-badge" hidden>Ping: -- ms</div>
+            <div id="networkWarning" class="network-warning" hidden>Verbindung instabil</div>
           </div>
 
           <div class="hud-card player-two-card">
@@ -372,18 +535,38 @@
               <span id="touchStatusLabel" class="touch-status-label">Handy Touch aktiv</span>
             </div>
 
-            <div class="touch-cluster touch-move-cluster">
-              <button class="touch-button touch-button-wide" data-touch-action="left" type="button">Links</button>
-              <button class="touch-button touch-button-wide" data-touch-action="right" type="button">Rechts</button>
+            <div id="touchPanelP1" class="touch-panel touch-panel-left" hidden>
+              <span class="touch-panel-label">Spieler 1 Touch</span>
+              <div class="touch-cluster touch-move-cluster">
+                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="left" type="button">Links</button>
+                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="right" type="button">Rechts</button>
+                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="jump" type="button">Sprung</button>
+              </div>
+
+              <div class="touch-cluster touch-action-cluster">
+                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="block" type="button">Block</button>
+                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="attack" type="button">Angriff</button>
+                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="special" type="button">Spezial</button>
+                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="ability" type="button">Faehigkeit</button>
+                <button class="touch-button touch-button-small touch-button-muted" data-touch-player="1" data-touch-action="pause" type="button">Pause</button>
+              </div>
             </div>
 
-            <div class="touch-cluster touch-action-cluster">
-              <button class="touch-button touch-button-small" data-touch-action="block" type="button">Block</button>
-              <button class="touch-button touch-button-small" data-touch-action="jump" type="button">Sprung</button>
-              <button class="touch-button touch-button-small" data-touch-action="attack" type="button">Angriff</button>
-              <button class="touch-button touch-button-small" data-touch-action="special" type="button">Spezial</button>
-              <button class="touch-button touch-button-small" data-touch-action="ability" type="button">Faehigkeit</button>
-              <button class="touch-button touch-button-small touch-button-muted" data-touch-action="pause" type="button">Pause</button>
+            <div id="touchPanelP2" class="touch-panel touch-panel-right" hidden>
+              <span class="touch-panel-label">Spieler 2 Touch</span>
+              <div class="touch-cluster touch-move-cluster">
+                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="left" type="button">Links</button>
+                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="right" type="button">Rechts</button>
+                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="jump" type="button">Sprung</button>
+              </div>
+
+              <div class="touch-cluster touch-action-cluster">
+                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="block" type="button">Block</button>
+                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="attack" type="button">Angriff</button>
+                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="special" type="button">Spezial</button>
+                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="ability" type="button">Faehigkeit</button>
+                <button class="touch-button touch-button-small touch-button-muted" data-touch-player="2" data-touch-action="pause" type="button">Pause</button>
+              </div>
             </div>
           </div>
         </div>
@@ -404,6 +587,6 @@
     </section>
   </div>
 
-  <script src="script.js" defer></script>
+  <script src="client.js" defer></script>
 </body>
 </html>
