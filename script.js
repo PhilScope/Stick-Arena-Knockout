@@ -223,6 +223,7 @@ const GAMEPAD_ACTION_BUTTONS = {
 };
 const GAMEPAD_AXIS_THRESHOLD = 0.35;
 const PLAYSTATION_ID_HINTS = ["dualsense", "dualshock", "wireless controller", "playstation", "sony", "054c", "ps5", "ps4"];
+const SOCKET_IO_CDN_URL = "https://cdn.socket.io/4.8.1/socket.io.min.js";
 
 const BOT_DIFFICULTIES = {
   easy: {
@@ -1392,6 +1393,98 @@ function normalizeRoomCode(value = "") {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
 }
 
+function isLocalhostHost(hostname = "") {
+  const lowered = String(hostname).toLowerCase();
+  return lowered === "localhost" || lowered === "127.0.0.1" || lowered === "[::1]";
+}
+
+function sanitizeServerOrigin(value = "") {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(rawValue, window.location.href);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "";
+    }
+    return parsed.origin.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function getConfiguredOnlineServerOrigin() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get("server");
+  const fromGlobal = typeof window.STICK_ARENA_SERVER_URL === "string" ? window.STICK_ARENA_SERVER_URL : "";
+  let fromStorage = "";
+
+  try {
+    fromStorage = window.localStorage?.getItem("stickArenaServerUrl") || "";
+  } catch {
+    fromStorage = "";
+  }
+
+  return sanitizeServerOrigin(fromGlobal || fromQuery || fromStorage);
+}
+
+function getOnlineServerOrigin() {
+  const configuredOrigin = getConfiguredOnlineServerOrigin();
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
+  if (window.location.protocol === "file:") {
+    return "";
+  }
+
+  return window.location.origin;
+}
+
+function getOnlineServerSetupMessage() {
+  const configuredOrigin = getConfiguredOnlineServerOrigin();
+  const targetOrigin = configuredOrigin || getOnlineServerOrigin();
+
+  if (window.location.protocol === "file:") {
+    return "Online braucht den Node-Server. Starte npm install und npm start und oeffne danach http://localhost:3000 statt der HTML-Datei.";
+  }
+
+  if (window.location.hostname.endsWith("github.io") && !configuredOrigin) {
+    return "Der GitHub-Pages-Link enthaelt nur das Frontend. Fuer Online brauchst du server.js auf einem separaten HTTPS-Server oder lokal http://localhost:3000.";
+  }
+
+  if (configuredOrigin) {
+    return `Online-Server: ${targetOrigin}`;
+  }
+
+  if (isLocalhostHost(window.location.hostname)) {
+    return "Wenn kein Server erkannt wird, starte npm install und danach npm start. Das Spiel sollte dann ueber http://localhost:3000 laufen.";
+  }
+
+  return `Wenn kein Server erkannt wird, pruefe den Online-Server unter ${targetOrigin} oder setze ?server=https://dein-server.`;
+}
+
+function getOnlineConnectionErrorMessage() {
+  const configuredOrigin = getConfiguredOnlineServerOrigin();
+  const targetOrigin = configuredOrigin || getOnlineServerOrigin();
+
+  if (window.location.protocol === "file:") {
+    return "Online-Modus braucht den Node-Server. Starte npm install und danach npm start. Oeffne dann http://localhost:3000 statt die HTML-Datei direkt.";
+  }
+
+  if (window.location.hostname.endsWith("github.io") && !configuredOrigin) {
+    return "Der GitHub-Pages-Link enthaelt nur das Frontend. Fuer Online-Spielen brauchst du server.js auf einem separaten HTTPS-Server. Lokal funktioniert es ueber http://localhost:3000.";
+  }
+
+  if (isLocalhostHost(window.location.hostname) && !configuredOrigin) {
+    return "Socket.io-Server nicht gefunden. Starte zuerst npm install und danach npm start und lade dann http://localhost:3000 neu.";
+  }
+
+  return `Server-Verbindung fehlgeschlagen. Zielserver: ${targetOrigin || "unbekannt"}. Pruefe, ob der Node-Server laeuft und erreichbar ist.`;
+}
+
 function createChatEntry(author, text, type = "player") {
   return {
     author,
@@ -1405,6 +1498,7 @@ class OnlineManager {
   constructor() {
     this.socket = null;
     this.loaderPromise = null;
+    this.serverOrigin = getOnlineServerOrigin();
     this.chatMessages = [];
     this.remoteActions = {
       1: DEFAULT_ACTION(),
@@ -1444,17 +1538,35 @@ class OnlineManager {
       return true;
     }
 
-    if (window.location.protocol === "file:") {
-      throw new Error("Online-Modus braucht den Node-Server. Starte erst npm install und danach npm start.");
-    }
+    this.serverOrigin = getOnlineServerOrigin();
 
     if (!this.loaderPromise) {
       this.loaderPromise = new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "/socket.io/socket.io.js";
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error("Socket.io konnte nicht geladen werden. Pruefe, ob der Server laeuft."));
-        document.head.appendChild(script);
+        const scriptSources = [];
+        if (this.serverOrigin) {
+          const sameOriginServer = this.serverOrigin === window.location.origin;
+          scriptSources.push(sameOriginServer ? "/socket.io/socket.io.js" : `${this.serverOrigin}/socket.io/socket.io.js`);
+        }
+        scriptSources.push(SOCKET_IO_CDN_URL);
+
+        const tryLoad = (index) => {
+          if (index >= scriptSources.length) {
+            reject(new Error(getOnlineConnectionErrorMessage()));
+            return;
+          }
+
+          const script = document.createElement("script");
+          script.src = scriptSources[index];
+          script.async = true;
+          script.onload = () => resolve(true);
+          script.onerror = () => {
+            script.remove();
+            tryLoad(index + 1);
+          };
+          document.head.appendChild(script);
+        };
+
+        tryLoad(0);
       });
     }
 
@@ -1552,9 +1664,17 @@ class OnlineManager {
     try {
       appState.online.connecting = true;
       appState.online.error = "";
+      this.serverOrigin = getOnlineServerOrigin();
       await this.ensureSocketLibrary();
-      if (!this.socket) {
-        this.socket = window.io({
+
+      const targetOrigin = this.serverOrigin || window.location.origin;
+      const currentUri = this.socket?.io?.uri || this.socket?.io?.opts?.hostname || "";
+
+      if (!this.socket || (currentUri && !String(currentUri).startsWith(targetOrigin))) {
+        if (this.socket) {
+          this.socket.disconnect();
+        }
+        this.socket = window.io(targetOrigin, {
           autoConnect: false,
           transports: ["websocket", "polling"],
         });
@@ -1587,7 +1707,13 @@ class OnlineManager {
     } catch (error) {
       appState.online.connected = false;
       appState.online.connecting = false;
-      appState.online.error = error?.message ?? "Server-Verbindung fehlgeschlagen.";
+      if (!window.io) {
+        this.loaderPromise = null;
+      }
+      const rawMessage = error?.message ?? "";
+      appState.online.error = rawMessage && rawMessage !== "xhr poll error" && rawMessage !== "websocket error"
+        ? rawMessage
+        : getOnlineConnectionErrorMessage();
       refreshModeScreen();
       return false;
     }
@@ -5950,8 +6076,8 @@ function refreshOnlinePanel() {
       : `Raum ${appState.online.roomCode} ist offen. Sende den Code an deinen Freund.`
     : "Erstelle einen Raum oder tritt mit einem Code bei. Sobald dein Gegner verbunden ist, geht es weiter zur Charakterauswahl.";
   ui.onlineServerHint.textContent = appState.online.connected
-    ? appState.online.warning || "Server verbunden. Chat und Raumcode sind bereit."
-    : "Wenn kein Server erkannt wird, starte npm install und danach npm start.";
+    ? appState.online.warning || `Server verbunden: ${onlineManager.serverOrigin || window.location.origin}`
+    : getOnlineServerSetupMessage();
   ui.onlineContinueButton.disabled = !(appState.online.connected && appState.online.roomCode && appState.online.opponentConnected);
   ui.onlineCopyRoomCodeButton.disabled = !appState.online.roomCode;
   ui.onlineChatInput.disabled = !appState.online.roomCode || appState.online.phase === "battle";
