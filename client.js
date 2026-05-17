@@ -1,5 +1,6 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+canvas.tabIndex = 0;
 
 const screens = {
   mainMenu: document.getElementById("mainMenu"),
@@ -10,10 +11,8 @@ const screens = {
 };
 
 const ui = {
-  startButton: document.getElementById("startButton"),
   quickLocalButton: document.getElementById("quickLocalButton"),
   quickBotButton: document.getElementById("quickBotButton"),
-  quickOnlineButton: document.getElementById("quickOnlineButton"),
   modeBackButton: document.getElementById("modeBackButton"),
   modeCards: [...document.querySelectorAll(".mode-card")],
   botDifficultyPanel: document.getElementById("botDifficultyPanel"),
@@ -23,23 +22,6 @@ const ui = {
   setupPanel: document.getElementById("setupPanel"),
   setupSubtitle: document.getElementById("setupSubtitle"),
   continueToCharactersButton: document.getElementById("continueToCharactersButton"),
-  onlinePanel: document.getElementById("onlinePanel"),
-  onlineSubtitle: document.getElementById("onlineSubtitle"),
-  onlineCreateRoomButton: document.getElementById("onlineCreateRoomButton"),
-  onlineJoinRoomButton: document.getElementById("onlineJoinRoomButton"),
-  onlineContinueButton: document.getElementById("onlineContinueButton"),
-  onlineLeaveRoomButton: document.getElementById("onlineLeaveRoomButton"),
-  onlineCopyRoomCodeButton: document.getElementById("onlineCopyRoomCodeButton"),
-  onlineRoomCodeInput: document.getElementById("onlineRoomCodeInput"),
-  onlineConnectionValue: document.getElementById("onlineConnectionValue"),
-  onlineRoomCodeValue: document.getElementById("onlineRoomCodeValue"),
-  onlineOpponentValue: document.getElementById("onlineOpponentValue"),
-  onlinePingValue: document.getElementById("onlinePingValue"),
-  onlineServerHint: document.getElementById("onlineServerHint"),
-  onlineChatMessages: document.getElementById("onlineChatMessages"),
-  onlineChatInput: document.getElementById("onlineChatInput"),
-  onlineChatSendButton: document.getElementById("onlineChatSendButton"),
-  onlineErrorText: document.getElementById("onlineErrorText"),
   controllerStatus0: document.getElementById("controllerStatus0"),
   controllerStatus1: document.getElementById("controllerStatus1"),
   controllerWarningText: document.getElementById("controllerWarningText"),
@@ -57,7 +39,6 @@ const ui = {
   selectionStep: document.getElementById("selectionStep"),
   selectionTitle: document.getElementById("selectionTitle"),
   selectionSubtitle: document.getElementById("selectionSubtitle"),
-  onlineStartBattleButton: document.getElementById("onlineStartBattleButton"),
   confirmCharacterTopButton: document.getElementById("confirmCharacterTopButton"),
   characterBackButton: document.getElementById("characterBackButton"),
   detailBadge: document.getElementById("detailBadge"),
@@ -76,11 +57,6 @@ const ui = {
   detailPros: document.getElementById("detailPros"),
   detailCons: document.getElementById("detailCons"),
   detailStats: document.getElementById("detailStats"),
-  onlineCharacterPanel: document.getElementById("onlineCharacterPanel"),
-  onlineCharacterRoomLabel: document.getElementById("onlineCharacterRoomLabel"),
-  onlineCharacterStatus: document.getElementById("onlineCharacterStatus"),
-  onlineLocalSelectionValue: document.getElementById("onlineLocalSelectionValue"),
-  onlineRemoteSelectionValue: document.getElementById("onlineRemoteSelectionValue"),
   confirmCharacterButton: document.getElementById("confirmCharacterButton"),
   p1GuideTitle: document.getElementById("p1GuideTitle"),
   p1GuideMove: document.getElementById("p1GuideMove"),
@@ -111,8 +87,6 @@ const ui = {
   p2DamageValue: document.getElementById("p2DamageValue"),
   p2DamageFill: document.getElementById("p2DamageFill"),
   modeBadge: document.getElementById("modeBadge"),
-  networkBadge: document.getElementById("networkBadge"),
-  networkWarning: document.getElementById("networkWarning"),
   countdownOverlay: document.getElementById("countdownOverlay"),
   pauseOverlay: document.getElementById("pauseOverlay"),
   pauseEyebrow: document.getElementById("pauseEyebrow"),
@@ -153,12 +127,8 @@ const GAME = {
   },
 };
 
-const ONLINE = {
+const GAME_LOOP = {
   fixedStep: 1 / 60,
-  pingIntervalMs: 2200,
-  warningLatencyMs: 180,
-  warningSilenceMs: 2600,
-  maxChatMessages: 40,
 };
 
 const INPUT_LABELS = {
@@ -170,7 +140,6 @@ const INPUT_LABELS = {
   controller1ps: "Ps Controller 2",
   controller0xbox: "Xbox Controller 1",
   controller1xbox: "Xbox Controller 2",
-  remote: "Online-Gegner",
   bot: "Bot-KI",
 };
 
@@ -223,7 +192,18 @@ const GAMEPAD_ACTION_BUTTONS = {
 };
 const GAMEPAD_AXIS_THRESHOLD = 0.35;
 const PLAYSTATION_ID_HINTS = ["dualsense", "dualshock", "wireless controller", "playstation", "sony", "054c", "ps5", "ps4"];
-const SOCKET_IO_CDN_URL = "https://cdn.socket.io/4.8.1/socket.io.min.js";
+const INPUT_BUFFER_WINDOW = 0.12;
+const BUFFERED_ACTION_NAMES = ["jump", "attack", "special", "ability"];
+const DEFAULT_CONTROLLER_CALIBRATION = {
+  jump: 0,
+  attack: 1,
+  special: 2,
+  ability: 3,
+  block: 4,
+  pause: 9,
+  left: 14,
+  right: 15,
+};
 
 const BOT_DIFFICULTIES = {
   easy: {
@@ -960,6 +940,15 @@ function createActionFlags() {
   };
 }
 
+function createInputBufferState() {
+  return {
+    jump: 0,
+    attack: 0,
+    special: 0,
+    ability: 0,
+  };
+}
+
 function syncActionBooleans(action) {
   action.left = Boolean(action.heldActions.left);
   action.right = Boolean(action.heldActions.right);
@@ -998,6 +987,25 @@ function DEFAULT_ACTION() {
   });
 }
 
+function mergeActionStates(...actions) {
+  const merged = DEFAULT_ACTION();
+
+  for (const action of actions) {
+    if (!action) {
+      continue;
+    }
+
+    const normalized = cloneAction(action);
+    for (const actionName of ACTION_NAMES) {
+      merged.heldActions[actionName] = merged.heldActions[actionName] || normalized.heldActions[actionName];
+      merged.pressedActions[actionName] = merged.pressedActions[actionName] || normalized.pressedActions[actionName];
+      merged.releasedActions[actionName] = merged.releasedActions[actionName] || normalized.releasedActions[actionName];
+    }
+  }
+
+  return syncActionBooleans(merged);
+}
+
 const appState = {
   screen: "mainMenu",
   mode: null,
@@ -1015,23 +1023,6 @@ const appState = {
   lastSelections: {
     player1: CHARACTER_DATA[0].id,
     player2: CHARACTER_DATA[1].id,
-  },
-  online: {
-    connected: false,
-    connecting: false,
-    roomCode: "",
-    localSlot: null,
-    isHost: false,
-    opponentConnected: false,
-    phase: "idle",
-    roomReady: false,
-    localCharacterId: null,
-    remoteCharacterId: null,
-    localLocked: false,
-    remoteLocked: false,
-    pingMs: null,
-    warning: "",
-    error: "",
   },
 };
 
@@ -1060,9 +1051,6 @@ function getInputChoiceLabel(choice, slot) {
   }
   if (choice === "touch") {
     return slot === 2 ? "Handy Touch P2" : "Handy Touch P1";
-  }
-  if (choice === "remote") {
-    return "Online-Gegner";
   }
   return INPUT_LABELS[choice] ?? "Unbekannt";
 }
@@ -1359,563 +1347,9 @@ function cloneAction(action = DEFAULT_ACTION()) {
   return syncActionBooleans(cloned);
 }
 
-function sanitizeActionPayload(action) {
-  if (!action || typeof action !== "object") {
-    return DEFAULT_ACTION();
-  }
-  return cloneAction(action);
-}
-
-function serializeAction(action) {
-  return JSON.stringify(cloneAction(action));
-}
-
-function clearTransientActionState(action) {
-  if (!action || typeof action !== "object") {
-    return;
-  }
-
-  for (const actionName of PRESSED_ACTION_NAMES) {
-    if (action.pressedActions) {
-      action.pressedActions[actionName] = false;
-    }
-    if (action.releasedActions) {
-      action.releasedActions[actionName] = false;
-    }
-    action[actionName] = false;
-    action[`${actionName}Pressed`] = false;
-  }
-
-  syncActionBooleans(action);
-}
-
-function normalizeRoomCode(value = "") {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-}
-
-function isLocalhostHost(hostname = "") {
-  const lowered = String(hostname).toLowerCase();
-  return lowered === "localhost" || lowered === "127.0.0.1" || lowered === "[::1]";
-}
-
-function sanitizeServerOrigin(value = "") {
-  const rawValue = String(value || "").trim();
-  if (!rawValue) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(rawValue, window.location.href);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "";
-    }
-    return parsed.origin.replace(/\/+$/, "");
-  } catch {
-    return "";
-  }
-}
-
-function getConfiguredOnlineServerOrigin() {
-  const params = new URLSearchParams(window.location.search);
-  const fromQuery = params.get("server");
-  const fromGlobal = typeof window.STICK_ARENA_SERVER_URL === "string" ? window.STICK_ARENA_SERVER_URL : "";
-  let fromStorage = "";
-
-  try {
-    fromStorage = window.localStorage?.getItem("stickArenaServerUrl") || "";
-  } catch {
-    fromStorage = "";
-  }
-
-  return sanitizeServerOrigin(fromGlobal || fromQuery || fromStorage);
-}
-
-function getOnlineServerOrigin() {
-  const configuredOrigin = getConfiguredOnlineServerOrigin();
-  if (configuredOrigin) {
-    return configuredOrigin;
-  }
-
-  if (window.location.protocol === "file:") {
-    return "";
-  }
-
-  return window.location.origin;
-}
-
-function getOnlineServerSetupMessage() {
-  const configuredOrigin = getConfiguredOnlineServerOrigin();
-  const targetOrigin = configuredOrigin || getOnlineServerOrigin();
-
-  if (window.location.protocol === "file:") {
-    return "Online braucht den Node-Server. Starte npm install und npm start und oeffne danach http://localhost:3000 statt der HTML-Datei.";
-  }
-
-  if (window.location.hostname.endsWith("github.io") && !configuredOrigin) {
-    return "Der GitHub-Pages-Link enthaelt nur das Frontend. Fuer Online brauchst du server.js auf einem separaten HTTPS-Server oder lokal http://localhost:3000.";
-  }
-
-  if (configuredOrigin) {
-    return `Online-Server: ${targetOrigin}`;
-  }
-
-  if (isLocalhostHost(window.location.hostname)) {
-    return "Wenn kein Server erkannt wird, starte npm install und danach npm start. Das Spiel sollte dann ueber http://localhost:3000 laufen.";
-  }
-
-  return `Wenn kein Server erkannt wird, pruefe den Online-Server unter ${targetOrigin} oder setze ?server=https://dein-server.`;
-}
-
-function getOnlineConnectionErrorMessage() {
-  const configuredOrigin = getConfiguredOnlineServerOrigin();
-  const targetOrigin = configuredOrigin || getOnlineServerOrigin();
-
-  if (window.location.protocol === "file:") {
-    return "Online-Modus braucht den Node-Server. Starte npm install und danach npm start. Oeffne dann http://localhost:3000 statt die HTML-Datei direkt.";
-  }
-
-  if (window.location.hostname.endsWith("github.io") && !configuredOrigin) {
-    return "Der GitHub-Pages-Link enthaelt nur das Frontend. Fuer Online-Spielen brauchst du server.js auf einem separaten HTTPS-Server. Lokal funktioniert es ueber http://localhost:3000.";
-  }
-
-  if (isLocalhostHost(window.location.hostname) && !configuredOrigin) {
-    return "Socket.io-Server nicht gefunden. Starte zuerst npm install und danach npm start und lade dann http://localhost:3000 neu.";
-  }
-
-  return `Server-Verbindung fehlgeschlagen. Zielserver: ${targetOrigin || "unbekannt"}. Pruefe, ob der Node-Server laeuft und erreichbar ist.`;
-}
-
-function createChatEntry(author, text, type = "player") {
-  return {
-    author,
-    text,
-    type,
-    timestamp: Date.now(),
-  };
-}
-
-class OnlineManager {
-  constructor() {
-    this.socket = null;
-    this.loaderPromise = null;
-    this.serverOrigin = getOnlineServerOrigin();
-    this.chatMessages = [];
-    this.remoteActions = {
-      1: DEFAULT_ACTION(),
-      2: DEFAULT_ACTION(),
-    };
-    this.lastRemotePacketAt = 0;
-    this.lastPingSentAt = 0;
-    this.lastPongAt = 0;
-    this.connectionError = "";
-  }
-
-  resetRoomState() {
-    appState.online.roomCode = "";
-    appState.online.localSlot = null;
-    appState.online.isHost = false;
-    appState.online.opponentConnected = false;
-    appState.online.phase = "idle";
-    appState.online.roomReady = false;
-    appState.online.localCharacterId = null;
-    appState.online.remoteCharacterId = null;
-    appState.online.localLocked = false;
-    appState.online.remoteLocked = false;
-    appState.online.warning = "";
-    appState.online.error = "";
-    appState.online.pingMs = null;
-    this.chatMessages = [];
-    this.remoteActions = {
-      1: DEFAULT_ACTION(),
-      2: DEFAULT_ACTION(),
-    };
-    this.lastRemotePacketAt = 0;
-    renderOnlineChatMessages();
-  }
-
-  async ensureSocketLibrary() {
-    if (window.io) {
-      return true;
-    }
-
-    this.serverOrigin = getOnlineServerOrigin();
-
-    if (!this.loaderPromise) {
-      this.loaderPromise = new Promise((resolve, reject) => {
-        const scriptSources = [];
-        if (this.serverOrigin) {
-          const sameOriginServer = this.serverOrigin === window.location.origin;
-          scriptSources.push(sameOriginServer ? "/socket.io/socket.io.js" : `${this.serverOrigin}/socket.io/socket.io.js`);
-        }
-        scriptSources.push(SOCKET_IO_CDN_URL);
-
-        const tryLoad = (index) => {
-          if (index >= scriptSources.length) {
-            reject(new Error(getOnlineConnectionErrorMessage()));
-            return;
-          }
-
-          const script = document.createElement("script");
-          script.src = scriptSources[index];
-          script.async = true;
-          script.onload = () => resolve(true);
-          script.onerror = () => {
-            script.remove();
-            tryLoad(index + 1);
-          };
-          document.head.appendChild(script);
-        };
-
-        tryLoad(0);
-      });
-    }
-
-    return this.loaderPromise;
-  }
-
-  bindSocketEvents() {
-    if (!this.socket || this.socket.__boundStickArena) {
-      return;
-    }
-
-    this.socket.__boundStickArena = true;
-
-    this.socket.on("connect", () => {
-      appState.online.connected = true;
-      appState.online.connecting = false;
-      appState.online.error = "";
-      this.connectionError = "";
-      refreshModeScreen();
-    });
-
-    this.socket.on("disconnect", () => {
-      appState.online.connected = false;
-      appState.online.connecting = false;
-      appState.online.warning = "Server-Verbindung getrennt. Socket.io versucht die Verbindung neu aufzubauen.";
-      refreshModeScreen();
-      refreshNetworkHud();
-    });
-
-    this.socket.on("room-joined", (payload) => {
-      appState.online.roomCode = payload.roomCode;
-      appState.online.localSlot = payload.localSlot;
-      appState.online.isHost = Boolean(payload.isHost);
-      appState.online.phase = payload.phase ?? "lobby";
-      appState.online.error = "";
-      this.pushSystemMessage(`Du bist Raum ${payload.roomCode} beigetreten.`);
-      refreshModeScreen();
-    });
-
-    this.socket.on("room-state", (payload) => {
-      this.applyRoomState(payload);
-    });
-
-    this.socket.on("room-error", (payload) => {
-      appState.online.error = payload?.message ?? "Online-Fehler.";
-      refreshModeScreen();
-    });
-
-    this.socket.on("chat-message", (payload) => {
-      this.chatMessages.push(createChatEntry(payload.author, payload.text, payload.type ?? "player"));
-      this.trimChat();
-      renderOnlineChatMessages();
-    });
-
-    this.socket.on("remote-input", (payload) => {
-      const slot = Number(payload?.slot || 0);
-      if (slot !== 1 && slot !== 2) {
-        return;
-      }
-      this.remoteActions[slot] = sanitizeActionPayload(payload.action);
-      this.lastRemotePacketAt = performance.now();
-    });
-
-    this.socket.on("match-start", (payload) => {
-      this.beginMatch(payload);
-    });
-
-    this.socket.on("opponent-disconnected", () => {
-      appState.online.opponentConnected = false;
-      appState.online.roomReady = false;
-      appState.online.warning = "Der Gegner hat die Verbindung verloren.";
-      refreshModeScreen();
-      if (game.active && game.currentMode === "online") {
-        finishOnlineDisconnect(appState.online.localSlot);
-      }
-    });
-
-    this.socket.on("pong-check", (payload) => {
-      if (!payload || typeof payload.sentAt !== "number") {
-        return;
-      }
-      appState.online.pingMs = Math.max(0, Math.round(performance.now() - payload.sentAt));
-      this.lastPongAt = performance.now();
-      refreshModeScreen();
-      refreshNetworkHud();
-    });
-  }
-
-  async connect() {
-    if (this.socket?.connected) {
-      appState.online.connected = true;
-      return true;
-    }
-
-    try {
-      appState.online.connecting = true;
-      appState.online.error = "";
-      this.serverOrigin = getOnlineServerOrigin();
-      await this.ensureSocketLibrary();
-
-      const targetOrigin = this.serverOrigin || window.location.origin;
-      const currentUri = this.socket?.io?.uri || this.socket?.io?.opts?.hostname || "";
-
-      if (!this.socket || (currentUri && !String(currentUri).startsWith(targetOrigin))) {
-        if (this.socket) {
-          this.socket.disconnect();
-        }
-        this.socket = window.io(targetOrigin, {
-          autoConnect: false,
-          transports: ["websocket", "polling"],
-        });
-        this.bindSocketEvents();
-      }
-
-      if (!this.socket.connected) {
-        await new Promise((resolve, reject) => {
-          const onConnect = () => {
-            cleanup();
-            resolve(true);
-          };
-          const onError = (error) => {
-            cleanup();
-            reject(error instanceof Error ? error : new Error("Server-Verbindung fehlgeschlagen."));
-          };
-          const cleanup = () => {
-            this.socket.off("connect", onConnect);
-            this.socket.off("connect_error", onError);
-          };
-          this.socket.on("connect", onConnect);
-          this.socket.on("connect_error", onError);
-          this.socket.connect();
-        });
-      }
-
-      appState.online.connected = true;
-      appState.online.connecting = false;
-      return true;
-    } catch (error) {
-      appState.online.connected = false;
-      appState.online.connecting = false;
-      if (!window.io) {
-        this.loaderPromise = null;
-      }
-      const rawMessage = error?.message ?? "";
-      appState.online.error = rawMessage && rawMessage !== "xhr poll error" && rawMessage !== "websocket error"
-        ? rawMessage
-        : getOnlineConnectionErrorMessage();
-      refreshModeScreen();
-      return false;
-    }
-  }
-
-  trimChat() {
-    if (this.chatMessages.length > ONLINE.maxChatMessages) {
-      this.chatMessages = this.chatMessages.slice(-ONLINE.maxChatMessages);
-    }
-  }
-
-  pushSystemMessage(text) {
-    this.chatMessages.push(createChatEntry("System", text, "system"));
-    this.trimChat();
-    renderOnlineChatMessages();
-  }
-
-  async createRoom() {
-    const valid = validateOnlineInputChoice();
-    if (!valid.ok) {
-      appState.online.error = valid.message;
-      refreshModeScreen();
-      return;
-    }
-
-    const connected = await this.connect();
-    if (!connected || !this.socket) {
-      return;
-    }
-
-    this.resetRoomState();
-    this.chatMessages = [];
-    renderOnlineChatMessages();
-    this.socket.emit("create-room");
-  }
-
-  async joinRoom(code) {
-    const valid = validateOnlineInputChoice();
-    if (!valid.ok) {
-      appState.online.error = valid.message;
-      refreshModeScreen();
-      return;
-    }
-
-    const normalizedCode = normalizeRoomCode(code);
-    if (normalizedCode.length < 4) {
-      appState.online.error = "Gib einen gueltigen Raumcode ein.";
-      refreshModeScreen();
-      return;
-    }
-
-    const connected = await this.connect();
-    if (!connected || !this.socket) {
-      return;
-    }
-
-    this.resetRoomState();
-    this.chatMessages = [];
-    renderOnlineChatMessages();
-    this.socket.emit("join-room", { roomCode: normalizedCode });
-  }
-
-  leaveRoom(andDisconnect = false) {
-    if (this.socket?.connected && appState.online.roomCode) {
-      this.socket.emit("leave-room");
-    }
-    this.resetRoomState();
-    if (andDisconnect && this.socket?.connected) {
-      this.socket.disconnect();
-      appState.online.connected = false;
-    }
-    refreshModeScreen();
-  }
-
-  applyRoomState(payload) {
-    if (!payload) {
-      return;
-    }
-
-    appState.online.roomCode = payload.roomCode ?? appState.online.roomCode;
-    appState.online.phase = payload.phase ?? "lobby";
-    appState.online.roomReady = Boolean(payload.roomReady);
-    const localSlot = appState.online.localSlot;
-    const players = payload.players ?? [];
-    const localPlayer = players.find((player) => player.slot === localSlot) ?? null;
-    const remotePlayer = players.find((player) => player.slot !== localSlot && player.connected) ?? null;
-    appState.online.opponentConnected = Boolean(remotePlayer);
-    appState.online.localCharacterId = localPlayer?.characterId ?? null;
-    appState.online.remoteCharacterId = remotePlayer?.characterId ?? null;
-    appState.online.localLocked = Boolean(localPlayer?.locked);
-    appState.online.remoteLocked = Boolean(remotePlayer?.locked);
-
-    if (Array.isArray(payload.chatMessages)) {
-      this.chatMessages = payload.chatMessages.map((entry) => createChatEntry(entry.author, entry.text, entry.type ?? "player"));
-      this.trimChat();
-      renderOnlineChatMessages();
-    }
-
-    if (payload.message) {
-      this.pushSystemMessage(payload.message);
-    }
-
-    refreshModeScreen();
-    updateSelectionHeader();
-    updateCharacterDetail();
-    refreshOnlineCharacterPanel();
-  }
-
-  sendChat(text) {
-    if (!this.socket?.connected || !appState.online.roomCode || appState.online.phase === "battle") {
-      return;
-    }
-
-    const message = text.trim().slice(0, 160);
-    if (!message) {
-      return;
-    }
-
-    this.socket.emit("chat-message", { text: message });
-    ui.onlineChatInput.value = "";
-  }
-
-  lockCharacter(characterId) {
-    if (!this.socket?.connected || !appState.online.roomCode) {
-      appState.online.error = "Verbinde zuerst einen Online-Raum.";
-      refreshModeScreen();
-      return;
-    }
-
-    this.socket.emit("select-character", { characterId });
-    appState.online.localCharacterId = characterId;
-    appState.online.localLocked = true;
-    refreshOnlineCharacterPanel();
-  }
-
-  requestMatchStart() {
-    if (!this.socket?.connected || !appState.online.isHost) {
-      return;
-    }
-    this.socket.emit("start-match");
-  }
-
-  beginMatch(payload) {
-    if (!payload?.selections || !appState.online.localSlot) {
-      return;
-    }
-
-    appState.online.phase = "battle";
-    appState.online.warning = "";
-    this.remoteActions = {
-      1: DEFAULT_ACTION(),
-      2: DEFAULT_ACTION(),
-    };
-    this.lastRemotePacketAt = performance.now();
-    showScreen("battleScreen");
-    game.startMatch(
-      "online",
-      payload.selections,
-      { player1: appState.inputSelections.player1 },
-      appState.botDifficulty,
-      {
-        localSlot: appState.online.localSlot,
-        isHost: appState.online.isHost,
-        roomCode: appState.online.roomCode,
-      },
-    );
-    refreshNetworkHud();
-  }
-
-  sendLocalAction(slot, action) {
-    if (!this.socket?.connected || game.currentMode !== "online" || !game.active) {
-      return;
-    }
-    if (slot !== appState.online.localSlot) {
-      return;
-    }
-    this.socket.emit("input-update", { action: sanitizeActionPayload(action) });
-  }
-
-  consumeRemoteAction(slot) {
-    const action = cloneAction(this.remoteActions[slot] ?? DEFAULT_ACTION());
-    clearTransientActionState(this.remoteActions[slot]);
-    return action;
-  }
-
-  tick() {
-    if (this.socket?.connected && performance.now() - this.lastPingSentAt > ONLINE.pingIntervalMs) {
-      this.lastPingSentAt = performance.now();
-      this.socket.emit("ping-check", { sentAt: this.lastPingSentAt });
-    }
-
-    if (game.currentMode === "online" && game.active) {
-      const silence = performance.now() - this.lastRemotePacketAt;
-      if ((appState.online.pingMs ?? 0) >= ONLINE.warningLatencyMs || silence > ONLINE.warningSilenceMs) {
-        appState.online.warning = silence > ONLINE.warningSilenceMs
-          ? "Netzwerkdaten vom Gegner kommen spaet an."
-          : `Hohe Latenz: ${appState.online.pingMs} ms`;
-      } else {
-        appState.online.warning = "";
-      }
-      refreshNetworkHud();
-    }
+function focusBattleCanvas() {
+  if (typeof canvas.focus === "function") {
+    canvas.focus({ preventScroll: true });
   }
 }
 
@@ -2443,10 +1877,12 @@ class InputManager {
         left: false,
         right: false,
       },
+      previousAxes: [0, 0],
       previousButtons: Array(18).fill(false),
       buttonsDown: Array(18).fill(false),
       buttonsPressed: Array(18).fill(false),
       buttonsReleased: Array(18).fill(false),
+      calibrationMapping: { ...DEFAULT_CONTROLLER_CALIBRATION },
     };
   }
 
@@ -2530,11 +1966,42 @@ class InputManager {
 
   pollGamepads() {
     const rawPads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : [];
-    this.connectedCount = rawPads.filter((pad) => pad && pad.connected).length;
+    const connectedPads = rawPads
+      .filter((pad) => pad && pad.connected)
+      .sort((left, right) => (left.index ?? 0) - (right.index ?? 0));
+    this.connectedCount = connectedPads.length;
+
+    const assignedPads = Array(this.gamepads.length).fill(null);
+    const usedPhysicalIndices = new Set();
 
     for (let slot = 0; slot < this.gamepads.length; slot += 1) {
       const state = this.gamepads[slot];
-      const rawPad = rawPads[slot] ?? null;
+      if (state.physicalIndex < 0) {
+        continue;
+      }
+
+      const matchingPad = connectedPads.find((pad) => pad.index === state.physicalIndex);
+      if (matchingPad) {
+        assignedPads[slot] = matchingPad;
+        usedPhysicalIndices.add(matchingPad.index);
+      }
+    }
+
+    for (let slot = 0; slot < this.gamepads.length; slot += 1) {
+      if (assignedPads[slot]) {
+        continue;
+      }
+
+      const fallbackPad = connectedPads.find((pad) => !usedPhysicalIndices.has(pad.index)) ?? null;
+      if (fallbackPad) {
+        assignedPads[slot] = fallbackPad;
+        usedPhysicalIndices.add(fallbackPad.index);
+      }
+    }
+
+    for (let slot = 0; slot < this.gamepads.length; slot += 1) {
+      const state = this.gamepads[slot];
+      const rawPad = assignedPads[slot];
 
       if (rawPad && rawPad.connected) {
         state.connected = true;
@@ -2584,6 +2051,7 @@ class InputManager {
         }
 
         state.previousButtons = nextButtonsDown.slice();
+        state.previousAxes = state.axes.slice();
 
         if (reportedAction) {
           reportInputTest(getControllerSourceLabel(slot, state.id), reportedAction, state.id);
@@ -2599,6 +2067,7 @@ class InputManager {
         state.digitalPressed.right = false;
         state.digitalReleased.left = false;
         state.digitalReleased.right = false;
+        state.previousAxes = [0, 0];
         state.previousButtons = Array(state.previousButtons.length).fill(false);
         state.buttonsDown = Array(state.buttonsDown.length).fill(false);
         state.buttonsPressed = Array(state.buttonsPressed.length).fill(false);
@@ -2642,30 +2111,31 @@ class InputManager {
     }
 
     const axisX = Math.abs(pad.axes[0]) > GAMEPAD_AXIS_THRESHOLD ? pad.axes[0] : 0;
-    action.heldActions.left = axisX < -GAMEPAD_AXIS_THRESHOLD || pad.buttonsDown[14];
-    action.heldActions.right = axisX > GAMEPAD_AXIS_THRESHOLD || pad.buttonsDown[15];
-    action.heldActions.jump = pad.buttonsDown[0];
-    action.heldActions.block = pad.buttonsDown[4];
-    action.heldActions.attack = pad.buttonsDown[1];
-    action.heldActions.special = pad.buttonsDown[2];
-    action.heldActions.ability = pad.buttonsDown[3];
-    action.heldActions.pause = pad.buttonsDown[9];
+    const mapping = pad.calibrationMapping ?? DEFAULT_CONTROLLER_CALIBRATION;
+    action.heldActions.left = axisX < -GAMEPAD_AXIS_THRESHOLD || pad.buttonsDown[mapping.left];
+    action.heldActions.right = axisX > GAMEPAD_AXIS_THRESHOLD || pad.buttonsDown[mapping.right];
+    action.heldActions.jump = pad.buttonsDown[mapping.jump];
+    action.heldActions.block = pad.buttonsDown[mapping.block];
+    action.heldActions.attack = pad.buttonsDown[mapping.attack];
+    action.heldActions.special = pad.buttonsDown[mapping.special];
+    action.heldActions.ability = pad.buttonsDown[mapping.ability];
+    action.heldActions.pause = pad.buttonsDown[mapping.pause];
     action.pressedActions.left = pad.digitalPressed.left;
     action.pressedActions.right = pad.digitalPressed.right;
-    action.pressedActions.jump = pad.buttonsPressed[0];
-    action.pressedActions.block = pad.buttonsPressed[4];
-    action.pressedActions.attack = pad.buttonsPressed[1];
-    action.pressedActions.special = pad.buttonsPressed[2];
-    action.pressedActions.ability = pad.buttonsPressed[3];
-    action.pressedActions.pause = pad.buttonsPressed[9];
+    action.pressedActions.jump = pad.buttonsPressed[mapping.jump];
+    action.pressedActions.block = pad.buttonsPressed[mapping.block];
+    action.pressedActions.attack = pad.buttonsPressed[mapping.attack];
+    action.pressedActions.special = pad.buttonsPressed[mapping.special];
+    action.pressedActions.ability = pad.buttonsPressed[mapping.ability];
+    action.pressedActions.pause = pad.buttonsPressed[mapping.pause];
     action.releasedActions.left = pad.digitalReleased.left;
     action.releasedActions.right = pad.digitalReleased.right;
-    action.releasedActions.jump = pad.buttonsReleased[0];
-    action.releasedActions.block = pad.buttonsReleased[4];
-    action.releasedActions.attack = pad.buttonsReleased[1];
-    action.releasedActions.special = pad.buttonsReleased[2];
-    action.releasedActions.ability = pad.buttonsReleased[3];
-    action.releasedActions.pause = pad.buttonsReleased[9];
+    action.releasedActions.jump = pad.buttonsReleased[mapping.jump];
+    action.releasedActions.block = pad.buttonsReleased[mapping.block];
+    action.releasedActions.attack = pad.buttonsReleased[mapping.attack];
+    action.releasedActions.special = pad.buttonsReleased[mapping.special];
+    action.releasedActions.ability = pad.buttonsReleased[mapping.ability];
+    action.releasedActions.pause = pad.buttonsReleased[mapping.pause];
     return syncActionBooleans(action);
   }
 
@@ -2717,20 +2187,21 @@ class InputManager {
   }
 
   getActionForChoice(choice, slot) {
-    if (choice === "keyboard") {
-      return this.getKeyboardAction(slot);
-    }
+    const actionSources = [];
 
+    if (choice === "keyboard") {
+      actionSources.push(this.getKeyboardAction(slot));
+    }
     if (choice === "touch") {
-      return this.getTouchAction(slot);
+      actionSources.push(this.getTouchAction(slot));
     }
 
     const controllerSlot = getControllerSlotFromChoice(choice);
     if (controllerSlot !== null) {
-      return this.getGamepadAction(controllerSlot);
+      actionSources.push(this.getGamepadAction(controllerSlot));
     }
 
-    return DEFAULT_ACTION();
+    return actionSources.length > 0 ? mergeActionStates(...actionSources) : DEFAULT_ACTION();
   }
 
   getPausePressedForBattle(players) {
@@ -2741,17 +2212,6 @@ class InputManager {
     return players.some((player) => {
       if (player.isBot) {
         return false;
-      }
-
-      if (game.currentMode === "online" && player.label === "Du") {
-        if (player.inputChoice === "keyboard") {
-          return this.getKeyboardAction(1).pause;
-        }
-        if (player.inputChoice === "touch") {
-          return this.getTouchAction(player.slot).pause;
-        }
-        const controllerSlot = getControllerSlotFromChoice(player.inputChoice);
-        return controllerSlot !== null ? this.getGamepadAction(controllerSlot).pause : false;
       }
 
       return this.getActionForChoice(player.inputChoice, player.slot).pause;
@@ -2812,6 +2272,8 @@ class Player {
     this.lives = GAME.stockLives;
     this.specialCooldown = 0;
     this.abilityCooldown = 0;
+    this.inputState = DEFAULT_ACTION();
+    this.inputBuffer = createInputBufferState();
     this.resetStockState();
   }
 
@@ -2848,6 +2310,7 @@ class Player {
     this.bloodrushTimer = 0;
     this.glideTimer = 0;
     this.standfastTimer = 0;
+    this.inputBuffer = createInputBufferState();
   }
 
   spawn(x, y, facing) {
@@ -2954,17 +2417,42 @@ class Player {
     return 1;
   }
 
+  tickInputBuffer(dt) {
+    for (const actionName of BUFFERED_ACTION_NAMES) {
+      this.inputBuffer[actionName] = Math.max(0, (this.inputBuffer[actionName] ?? 0) - dt);
+    }
+  }
+
+  bufferInput(actionInput) {
+    this.inputState = cloneAction(actionInput);
+    for (const actionName of BUFFERED_ACTION_NAMES) {
+      if (actionInput.pressedActions[actionName]) {
+        this.inputBuffer[actionName] = INPUT_BUFFER_WINDOW;
+      }
+    }
+  }
+
+  hasBufferedAction(actionName) {
+    return (this.inputBuffer[actionName] ?? 0) > 0;
+  }
+
+  consumeBufferedAction(actionName) {
+    if (!this.hasBufferedAction(actionName)) {
+      return false;
+    }
+    this.inputBuffer[actionName] = 0;
+    return true;
+  }
+
+  canUseJump() {
+    const standardJumpAvailable = this.onGround || this.jumpsUsed < this.stats.jumps;
+    const bonusJumpAvailable = !standardJumpAvailable && this.bonusJumpsAvailable > 0;
+    return standardJumpAvailable || bonusJumpAvailable;
+  }
+
   getInputLabel() {
     if (this.isBot) {
       return `Bot-KI - ${this.botDifficulty.label}`;
-    }
-    if (game.currentMode === "online" && this.label === "Du") {
-      if (this.inputChoice === "keyboard") {
-        return "Tastatur";
-      }
-      if (this.inputChoice === "touch") {
-        return "Handy Touch";
-      }
     }
     return getInputChoiceLabel(this.inputChoice, this.slot);
   }
@@ -3008,6 +2496,8 @@ class Player {
     this.glideTimer = Math.max(0, this.glideTimer - dt);
     this.standfastTimer = Math.max(0, this.standfastTimer - dt);
     this.effectTimer = Math.max(0, this.effectTimer - dt);
+    this.tickInputBuffer(dt);
+    this.bufferInput(actionInput);
 
     const canControl = game.controlsEnabled && this.lockTimer <= 0 && this.hitTimer <= 0;
     const moveInput = canControl ? ((actionInput.left ? -1 : 0) + (actionInput.right ? 1 : 0)) : 0;
@@ -3026,19 +2516,19 @@ class Player {
       this.vx = approach(this.vx, 0, drag * dt);
     }
 
-    if (canControl && actionInput.jump) {
+    if (canControl && this.canUseJump() && this.consumeBufferedAction("jump")) {
       this.tryJump(game);
     }
 
-    if (canControl && actionInput.attack) {
+    if (canControl && this.attackCooldown <= 0 && this.consumeBufferedAction("attack")) {
       this.performNormalAttack(game);
     }
 
-    if (canControl && actionInput.special) {
+    if (canControl && this.specialCooldown <= 0 && this.consumeBufferedAction("special")) {
       this.performSpecialAttack(game);
     }
 
-    if (canControl && actionInput.ability) {
+    if (canControl && this.abilityCooldown <= 0 && this.consumeBufferedAction("ability")) {
       this.performAbility(game);
     }
 
@@ -4890,33 +4380,16 @@ class ArenaGame {
     this.currentMode = "bot";
     this.currentBotDifficulty = getBotDifficultyConfig("medium");
     this.pauseKind = "manual";
-    this.onlineLocalSlot = null;
-    this.onlineRoomCode = "";
   }
 
-  startMatch(mode, selectionIds, inputSelections, botDifficultyKey, options = {}) {
+  startMatch(mode, selectionIds, inputSelections, botDifficultyKey) {
     this.currentMode = mode;
     this.currentBotDifficulty = getBotDifficultyConfig(botDifficultyKey);
-    this.onlineLocalSlot = mode === "online" ? options.localSlot ?? 1 : null;
-    this.onlineRoomCode = mode === "online" ? options.roomCode ?? "" : "";
-
-    if (mode === "online") {
-      const localInput = inputSelections.player1;
-      const player1Input = this.onlineLocalSlot === 1 ? localInput : "remote";
-      const player2Input = this.onlineLocalSlot === 2 ? localInput : "remote";
-      this.players = [
-        new Player(1, CHARACTER_MAP[selectionIds.player1], player1Input, false, botDifficultyKey),
-        new Player(2, CHARACTER_MAP[selectionIds.player2], player2Input, false, botDifficultyKey),
-      ];
-      this.players[this.onlineLocalSlot - 1].label = "Du";
-      this.players[this.onlineLocalSlot === 1 ? 1 : 0].label = "Gegner";
-    } else {
-      this.players = [
-        new Player(1, CHARACTER_MAP[selectionIds.player1], inputSelections.player1, false, botDifficultyKey),
-        new Player(2, CHARACTER_MAP[selectionIds.player2], mode === "bot" ? "bot" : inputSelections.player2, mode === "bot", botDifficultyKey),
-      ];
-      this.players[1].label = mode === "bot" ? "Bot" : "Spieler 2";
-    }
+    this.players = [
+      new Player(1, CHARACTER_MAP[selectionIds.player1], inputSelections.player1, false, botDifficultyKey),
+      new Player(2, CHARACTER_MAP[selectionIds.player2], mode === "bot" ? "bot" : inputSelections.player2, mode === "bot", botDifficultyKey),
+    ];
+    this.players[1].label = mode === "bot" ? "Bot" : "Spieler 2";
 
     this.hitboxes = [];
     this.particles = [];
@@ -4934,14 +4407,11 @@ class ArenaGame {
     if (mode === "bot") {
       inputManager.clearTouchSlot(2);
     }
-    if (mode === "online") {
-      appState.online.warning = "";
-      onlineManager.lastRemotePacketAt = performance.now();
-    }
     this.spawnPlayers();
     this.updateHud(true);
     this.setCountdownLabel("3");
     showScreen("battleScreen");
+    focusBattleCanvas();
     hidePauseOverlay();
     updateTouchControlsVisibility(this.players);
   }
@@ -4950,8 +4420,6 @@ class ArenaGame {
     this.active = false;
     this.pauseRequested = false;
     this.matchOver = false;
-    this.onlineLocalSlot = null;
-    this.onlineRoomCode = "";
     this.players = [];
     this.hitboxes = [];
     this.particles = [];
@@ -5225,24 +4693,6 @@ class ArenaGame {
       return syncActionBooleans(action);
     }
 
-    if (this.currentMode === "online") {
-      if (player.inputChoice === "remote") {
-        return onlineManager.consumeRemoteAction(player.slot);
-      }
-
-      let action;
-      if (player.inputChoice === "keyboard") {
-        action = inputManager.getKeyboardAction(1);
-      } else if (player.inputChoice === "touch") {
-        action = inputManager.getTouchAction(player.slot);
-      } else {
-        const controllerSlot = getControllerSlotFromChoice(player.inputChoice);
-        action = controllerSlot !== null ? inputManager.getGamepadAction(controllerSlot) : DEFAULT_ACTION();
-      }
-      onlineManager.sendLocalAction(player.slot, action);
-      return action;
-    }
-
     return inputManager.getActionForChoice(player.inputChoice, player.slot);
   }
 
@@ -5398,21 +4848,7 @@ class ArenaGame {
     this.setCountdownLabel("");
     this.sound.play("victory");
 
-    const result = this.currentMode === "online"
-      ? winner.slot === this.onlineLocalSlot
-        ? {
-            eyebrow: "Victory",
-            title: "Du gewinnst online!",
-            subtitle: `${loser.character.name} wurde von der Plattform gestoessen. Raum ${this.onlineRoomCode || ""}`.trim(),
-            tone: "win",
-          }
-        : {
-            eyebrow: "Defeat",
-            title: "Du verlierst online!",
-            subtitle: `${winner.character.name} hat den Online-Kampf fuer sich entschieden.`,
-            tone: "lose",
-          }
-      : this.currentMode === "local"
+    const result = this.currentMode === "local"
       ? {
           eyebrow: "Match vorbei",
           title: `${winner.label} gewinnt!`,
@@ -5455,9 +4891,7 @@ class ArenaGame {
     ui.p2InputTag.textContent = player2.getInputLabel();
     ui.modeBadge.textContent = this.currentMode === "local"
       ? "2 Spieler lokal"
-      : this.currentMode === "online"
-        ? `Online - Raum ${this.onlineRoomCode || "----"}`
-        : `Bot - ${this.currentBotDifficulty.label}`;
+      : `Bot - ${this.currentBotDifficulty.label}`;
 
     if (forceLives) {
       renderLives(ui.p1Lives, player1.lives);
@@ -5477,7 +4911,6 @@ class ArenaGame {
     ui.p2CooldownFill.style.width = `${clamp(p2SpecialFill, 0, 100)}%`;
     ui.p1AbilityFill.style.width = `${clamp(p1AbilityFill, 0, 100)}%`;
     ui.p2AbilityFill.style.width = `${clamp(p2AbilityFill, 0, 100)}%`;
-    refreshNetworkHud();
   }
 
   render() {
@@ -5597,7 +5030,6 @@ class ArenaGame {
 
 const inputManager = new InputManager();
 const game = new ArenaGame();
-const onlineManager = new OnlineManager();
 
 function renderLives(container, lives) {
   container.innerHTML = "";
@@ -5606,121 +5038,6 @@ function renderLives(container, lives) {
     heart.className = `life-heart ${index < lives ? "" : "empty"}`.trim();
     container.appendChild(heart);
   }
-}
-
-function renderOnlineChatMessages() {
-  if (!ui.onlineChatMessages) {
-    return;
-  }
-
-  ui.onlineChatMessages.innerHTML = "";
-  const messages = onlineManager.chatMessages;
-  if (messages.length === 0) {
-    const placeholder = document.createElement("div");
-    placeholder.className = "chat-entry system";
-    placeholder.innerHTML = "<strong>System</strong><p>Noch keine Nachrichten im Raum.</p>";
-    ui.onlineChatMessages.appendChild(placeholder);
-    return;
-  }
-
-  for (const message of messages) {
-    const entry = document.createElement("div");
-    entry.className = `chat-entry ${message.type === "system" ? "system" : ""}`.trim();
-    entry.innerHTML = `<strong>${message.author}</strong><p>${message.text}</p>`;
-    ui.onlineChatMessages.appendChild(entry);
-  }
-
-  ui.onlineChatMessages.scrollTop = ui.onlineChatMessages.scrollHeight;
-}
-
-function validateOnlineInputChoice() {
-  const choice = appState.inputSelections.player1;
-  const controllerSlot = getControllerSlotFromChoice(choice);
-
-  if (controllerSlot !== null && !inputManager.hasController(controllerSlot)) {
-    return {
-      ok: false,
-      message: `${INPUT_LABELS[choice]} ist aktuell nicht verbunden. Bitte Ps- oder Xbox-Controller verbinden und eine Taste druecken.`,
-    };
-  }
-
-  if (controllerSlot !== null && !isControllerChoiceCompatible(choice)) {
-    const detectedFamily = getConnectedControllerFamily(controllerSlot);
-    const detectedLabel = detectedFamily && detectedFamily !== "generic"
-      ? `${getControllerFamilyLabel(detectedFamily)}-Controller`
-      : "anderen Controller";
-    return {
-      ok: false,
-      message: `${INPUT_LABELS[choice]} passt nicht zum verbundenen Geraet. Controller ${controllerSlot + 1} wurde als ${detectedLabel} erkannt.`,
-    };
-  }
-
-  return { ok: true, message: "" };
-}
-
-function refreshOnlineCharacterPanel() {
-  const show = appState.mode === "online" && appState.screen === "characterScreen";
-  ui.onlineCharacterPanel.hidden = !show;
-  ui.onlineStartBattleButton.hidden = !show;
-
-  if (!show) {
-    return;
-  }
-
-  ui.onlineCharacterRoomLabel.textContent = `Raum: ${appState.online.roomCode || "----"}`;
-  ui.onlineLocalSelectionValue.textContent = appState.online.localLocked
-    ? CHARACTER_MAP[appState.online.localCharacterId]?.name ?? "Bestaetigt"
-    : "Nicht bestaetigt";
-  ui.onlineRemoteSelectionValue.textContent = appState.online.remoteLocked
-    ? CHARACTER_MAP[appState.online.remoteCharacterId]?.name ?? "Bestaetigt"
-    : appState.online.opponentConnected
-      ? "Noch nicht bestaetigt"
-      : "Warte auf Gegner...";
-
-  ui.onlineCharacterStatus.textContent = appState.online.opponentConnected
-    ? appState.online.localLocked && appState.online.remoteLocked
-      ? appState.online.isHost
-        ? "Beide Spieler sind bereit. Als Host kannst du jetzt den Kampf starten."
-        : "Beide Spieler sind bereit. Warte auf den Host, bis der Kampf startet."
-      : "Bestaetige deinen Charakter. Sobald beide Spieler bereit sind, kann der Host starten."
-    : "Warte darauf, dass ein zweiter Spieler dem Raum beitritt.";
-
-  ui.onlineStartBattleButton.disabled = !(appState.online.isHost && appState.online.localLocked && appState.online.remoteLocked);
-}
-
-function refreshNetworkHud() {
-  const show = game.active && game.currentMode === "online";
-  ui.networkBadge.hidden = !show;
-  ui.networkWarning.hidden = !show || !appState.online.warning;
-
-  if (!show) {
-    return;
-  }
-
-  ui.networkBadge.textContent = `Ping: ${appState.online.pingMs ?? "--"} ms`;
-  ui.networkWarning.textContent = appState.online.warning || "";
-}
-
-function finishOnlineDisconnect(winnerSlot) {
-  if (!game.active || game.currentMode !== "online") {
-    return;
-  }
-
-  game.matchOver = true;
-  game.controlsEnabled = false;
-  game.hitboxes = [];
-  game.scheduledEvents = [];
-  game.setCountdownLabel("");
-
-  const localWon = winnerSlot === appState.online.localSlot;
-  showEndScreen({
-    eyebrow: localWon ? "Victory" : "Defeat",
-    title: localWon ? "Du gewinnst durch Disconnect!" : "Du verlierst die Verbindung!",
-    subtitle: localWon
-      ? "Der Gegner hat die Verbindung verloren. Der Raum bleibt offen, bis du ins Menue gehst."
-      : "Die Online-Verbindung wurde beendet. Bitte starte den Raum neu.",
-    tone: localWon ? "win" : "lose",
-  });
 }
 
 function getDamageColor(percent) {
@@ -5757,16 +5074,8 @@ function updateGuidePanel(player, titleElement, moveElement, attackElement, abil
   const inputLabel = getInputChoiceLabel(player.inputChoice, player.slot);
   titleElement.textContent = `${player.label} - ${player.character.name}`;
 
-  if (player.inputChoice === "remote") {
-    moveElement.textContent = `${inputLabel}: Bewegung, Sprung und Blocks kommen live ueber das Netzwerk.`;
-    attackElement.textContent = `Online: ${player.character.normalAttackName} | Spezial: ${player.character.specialName}`;
-    abilityElement.textContent = `Faehigkeit: ${player.character.abilityName} | Ping: ${appState.online.pingMs ?? "--"} ms`;
-  } else if (player.inputChoice === "keyboard") {
-    const mapping = game.currentMode === "online" && player.label === "Du"
-      ? KEYBOARD_LAYOUTS.player1
-      : player.slot === 2
-        ? KEYBOARD_LAYOUTS.player2
-        : KEYBOARD_LAYOUTS.player1;
+  if (player.inputChoice === "keyboard") {
+    const mapping = player.slot === 2 ? KEYBOARD_LAYOUTS.player2 : KEYBOARD_LAYOUTS.player1;
     moveElement.textContent = `${inputLabel}: ${formatKeyCode(mapping.left)}/${formatKeyCode(mapping.right)} bewegen | ${formatKeyCode(mapping.jump)} springen | ${formatKeyCode(mapping.block)} blocken`;
     attackElement.textContent = `${formatKeyCode(mapping.attack)} ${player.character.normalAttackName} | ${formatKeyCode(mapping.special)} ${player.character.specialName}`;
     abilityElement.textContent = `${formatKeyCode(mapping.ability[0])} ${player.character.abilityName} | ${formatKeyCode(mapping.pause[0])} Pause`;
@@ -5825,13 +5134,11 @@ function updateCharacterDetail() {
   ui.detailAbilityName.textContent = character.abilityName;
   ui.detailAbilityDescription.textContent = character.abilityDescription;
   ui.detailAbilityCooldown.textContent = `Cooldown: ${character.gameplay.abilityCooldown.toFixed(1)} s`;
-  const selectedChoice = appState.mode === "online"
-    ? appState.inputSelections.player1
-    : isBotSlot
-      ? "bot"
-      : appState.selectingSlot === 2
-        ? appState.inputSelections.player2
-        : appState.inputSelections.player1;
+  const selectedChoice = isBotSlot
+    ? "bot"
+    : appState.selectingSlot === 2
+      ? appState.inputSelections.player2
+      : appState.inputSelections.player1;
   ui.detailKeyboardControls.textContent = isBotSlot
     ? getKeyboardControlTextForSlot(2, true)
     : getHumanDetailKeyboardText(appState.selectingSlot);
@@ -5879,8 +5186,6 @@ function updateCharacterDetail() {
   if (selectedCard && appState.screen === "characterScreen") {
     selectedCard.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
-
-  refreshOnlineCharacterPanel();
 }
 
 function renderCharacterCards() {
@@ -5921,18 +5226,6 @@ function getSelectionInputSummary(slot) {
 }
 
 function updateSelectionHeader() {
-  if (appState.mode === "online") {
-    ui.selectionStep.textContent = "Schritt 2 - Online-Auswahl";
-    ui.selectionTitle.textContent = "Du waehlst deinen Kaempfer";
-    ui.selectionSubtitle.textContent = appState.online.opponentConnected
-      ? `Raum ${appState.online.roomCode || "----"} - bestaetige deinen Charakter. Gegnerstatus: ${appState.online.remoteLocked ? "bereit" : "waehlt noch"}.`
-      : `Raum ${appState.online.roomCode || "----"} - warte auf den Gegner, bevor der Kampf starten kann.`;
-    ui.confirmCharacterTopButton.textContent = "Charakter bestaetigen";
-    ui.confirmCharacterButton.textContent = "Charakter bestaetigen";
-    refreshOnlineCharacterPanel();
-    return;
-  }
-
   const isBotSelection = appState.mode === "bot" && appState.selectingSlot === 2;
   const label = appState.selectingSlot === 1 ? "Spieler 1" : isBotSelection ? "Bot-Gegner" : "Spieler 2";
   const confirmLabel = appState.selectingSlot === 1 ? "Spieler 1 bestaetigen" : `${label} bestaetigen`;
@@ -5951,10 +5244,6 @@ function updateSelectionHeader() {
 function validateSetup() {
   if (!appState.mode) {
     return { ok: false, message: "Waehle zuerst einen Kampfmodus." };
-  }
-
-  if (appState.mode === "online") {
-    return validateOnlineInputChoice();
   }
 
   if (appState.mode === "local") {
@@ -6050,44 +5339,6 @@ function updateControllerDebugCard(cardElement, slot, state) {
   actionsValue.textContent = actionLabels.length > 0 ? actionLabels.join(", ") : "Keine Aktion";
 }
 
-function refreshOnlinePanel() {
-  ui.onlinePanel.hidden = appState.mode !== "online";
-
-  if (appState.mode !== "online") {
-    return;
-  }
-
-  ui.onlineRoomCodeInput.value = normalizeRoomCode(ui.onlineRoomCodeInput.value);
-  ui.onlineConnectionValue.textContent = appState.online.connected
-    ? "Verbunden"
-    : appState.online.connecting
-      ? "Verbinde..."
-      : "Offline";
-  ui.onlineRoomCodeValue.textContent = appState.online.roomCode || "Kein Raum";
-  ui.onlineOpponentValue.textContent = appState.online.opponentConnected
-    ? "Gegner verbunden"
-    : appState.online.roomCode
-      ? "Warte auf zweiten Spieler..."
-      : "Noch kein Gegner";
-  ui.onlinePingValue.textContent = `${appState.online.pingMs ?? "--"} ms`;
-  ui.onlineSubtitle.textContent = appState.online.roomCode
-    ? appState.online.opponentConnected
-      ? "Gegner verbunden. Ihr koennt jetzt in die Charakterauswahl wechseln."
-      : `Raum ${appState.online.roomCode} ist offen. Sende den Code an deinen Freund.`
-    : "Erstelle einen Raum oder tritt mit einem Code bei. Sobald dein Gegner verbunden ist, geht es weiter zur Charakterauswahl.";
-  ui.onlineServerHint.textContent = appState.online.connected
-    ? appState.online.warning || `Server verbunden: ${onlineManager.serverOrigin || window.location.origin}`
-    : getOnlineServerSetupMessage();
-  ui.onlineContinueButton.disabled = !(appState.online.connected && appState.online.roomCode && appState.online.opponentConnected);
-  ui.onlineCopyRoomCodeButton.disabled = !appState.online.roomCode;
-  ui.onlineChatInput.disabled = !appState.online.roomCode || appState.online.phase === "battle";
-  ui.onlineChatSendButton.disabled = !appState.online.roomCode || appState.online.phase === "battle";
-  ui.onlineLeaveRoomButton.textContent = appState.online.roomCode ? "Raum verlassen" : "Zurueck zum Menue";
-  ui.onlineErrorText.hidden = !appState.online.error;
-  ui.onlineErrorText.textContent = appState.online.error;
-  renderOnlineChatMessages();
-}
-
 function refreshModeScreen() {
   ui.modeCards.forEach((card) => {
     card.classList.toggle("selected", card.dataset.mode === appState.mode);
@@ -6095,7 +5346,6 @@ function refreshModeScreen() {
 
   ui.botDifficultyPanel.hidden = appState.mode !== "bot";
   ui.setupPanel.hidden = !appState.mode;
-  ui.onlinePanel.hidden = appState.mode !== "online";
   ui.difficultyCards.forEach((card) => {
     card.classList.toggle("selected", card.dataset.difficulty === appState.botDifficulty);
   });
@@ -6104,7 +5354,7 @@ function refreshModeScreen() {
   updateControllerStatusCard(ui.controllerStatus1, 1, inputManager.gamepads[1]);
   updateControllerDebugCard(ui.controllerDebug0, 0, inputManager.gamepads[0]);
   updateControllerDebugCard(ui.controllerDebug1, 1, inputManager.gamepads[1]);
-  const relevantChoices = appState.mode === "bot" || appState.mode === "online"
+  const relevantChoices = appState.mode === "bot"
     ? [appState.inputSelections.player1]
     : [appState.inputSelections.player1, appState.inputSelections.player2];
   const expectsController = relevantChoices.some((choice) => isControllerChoice(choice));
@@ -6115,11 +5365,6 @@ function refreshModeScreen() {
     ui.player2AssignmentLabel.textContent = "Spieler 2";
     ui.player2AssignmentTitle.textContent = "Bot-KI";
     ui.player2AssignmentCopy.textContent = `Der Bot uebernimmt Slot 2 automatisch. Schwierigkeit: ${getBotDifficultyConfig(appState.botDifficulty).label}.`;
-  } else if (appState.mode === "online") {
-    ui.setupSubtitle.textContent = "Lege nur fuer dich selbst fest, ob du mit Tastatur, Handy Touch, Ps- oder Xbox-Controller spielst. Der Gegner waehlt sein eigenes Geraet auf seinem Client.";
-    ui.player2AssignmentLabel.textContent = "Spieler 2";
-    ui.player2AssignmentTitle.textContent = "Online-Gegner";
-    ui.player2AssignmentCopy.textContent = "Der zweite Spieler kommt ueber das Netzwerk und wird nicht lokal konfiguriert.";
   } else {
     ui.setupSubtitle.textContent = "Waehle fuer beide Spieler ein eigenes Input-Profil. Tastatur, Handy Touch sowie Ps- und Xbox-Controller koennen gemischt werden. Zwei Touch-Spieler teilen sich getrennte On-Screen-Pads.";
     ui.player2AssignmentLabel.textContent = "Spieler 2";
@@ -6127,10 +5372,9 @@ function refreshModeScreen() {
     ui.player2AssignmentCopy.textContent = "Waehle ein separates Profil. Derselbe Controller kann nicht beiden Spielern gleichzeitig zugewiesen werden, zwei Touch-Profile dagegen schon.";
   }
 
-  ui.player2AssignmentCard.hidden = appState.mode === "bot" || appState.mode === "online";
-  ui.player2InputOptions.hidden = appState.mode === "bot" || appState.mode === "online";
-  ui.player2AssignmentCard.parentElement.classList.toggle("single-player", appState.mode === "bot" || appState.mode === "online");
-  ui.continueToCharactersButton.hidden = appState.mode === "online";
+  ui.player2AssignmentCard.hidden = appState.mode === "bot";
+  ui.player2InputOptions.hidden = appState.mode === "bot";
+  ui.player2AssignmentCard.parentElement.classList.toggle("single-player", appState.mode === "bot");
 
   ui.inputOptionButtons.forEach((button) => {
     const playerKey = button.dataset.player === "1" ? "player1" : "player2";
@@ -6151,26 +5395,17 @@ function refreshModeScreen() {
   ui.setupErrorText.hidden = validation.ok || !appState.mode;
   ui.setupErrorText.textContent = validation.message;
   ui.continueToCharactersButton.disabled = !validation.ok;
-  refreshOnlinePanel();
   updateTouchControlsVisibility();
 }
 
 function openCharacterSelection() {
-  if (appState.mode === "online") {
-    appState.selectingSlot = 1;
-    appState.selections.player1 = appState.online.localCharacterId;
-    appState.selections.player2 = appState.online.remoteCharacterId;
-    appState.selectedCharacterId = appState.online.localCharacterId || appState.lastSelections.player1 || CHARACTER_DATA[0].id;
-  } else {
-    appState.selectingSlot = 1;
-    appState.selections.player1 = null;
-    appState.selections.player2 = null;
-    appState.selectedCharacterId = appState.lastSelections.player1 || CHARACTER_DATA[0].id;
-  }
+  appState.selectingSlot = 1;
+  appState.selections.player1 = null;
+  appState.selections.player2 = null;
+  appState.selectedCharacterId = appState.lastSelections.player1 || CHARACTER_DATA[0].id;
   showScreen("characterScreen");
   updateSelectionHeader();
   updateCharacterDetail();
-  refreshOnlineCharacterPanel();
 }
 
 function continueFromSetup() {
@@ -6182,30 +5417,6 @@ function continueFromSetup() {
   openCharacterSelection();
 }
 
-function continueFromOnlineLobby() {
-  const validation = validateOnlineInputChoice();
-  if (!validation.ok) {
-    appState.online.error = validation.message;
-    refreshModeScreen();
-    return;
-  }
-
-  if (!appState.online.connected || !appState.online.roomCode) {
-    appState.online.error = "Erstelle oder betrete zuerst einen Raum.";
-    refreshModeScreen();
-    return;
-  }
-
-  if (!appState.online.opponentConnected) {
-    appState.online.error = "Warte auf den zweiten Spieler, bevor du zur Charakterauswahl gehst.";
-    refreshModeScreen();
-    return;
-  }
-
-  appState.online.error = "";
-  openCharacterSelection();
-}
-
 function confirmBotDifficultySelection() {
   refreshModeScreen();
   ui.setupPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -6213,11 +5424,6 @@ function confirmBotDifficultySelection() {
 
 function confirmCharacterSelection() {
   const selectedId = appState.selectedCharacterId;
-  if (appState.mode === "online") {
-    onlineManager.lockCharacter(selectedId);
-    return;
-  }
-
   if (appState.selectingSlot === 1) {
     appState.selections.player1 = selectedId;
     appState.selectingSlot = 2;
@@ -6244,7 +5450,7 @@ function showEndScreen(result) {
   ui.endEyebrow.textContent = result.eyebrow;
   ui.endTitle.textContent = result.title;
   ui.endSubtitle.textContent = result.subtitle;
-  ui.playAgainButton.textContent = appState.mode === "online" ? "Neuen Raum starten" : "Nochmal spielen";
+  ui.playAgainButton.textContent = "Nochmal spielen";
   showScreen("endScreen");
 }
 
@@ -6268,14 +5474,6 @@ function updateTouchControlsVisibility(players = game.players) {
   if (inBattle) {
     if (currentMode === "bot") {
       touchPlayer1 = players.find((player) => !player.isBot && player.slot === 1 && player.inputChoice === "touch") ?? null;
-    } else if (currentMode === "online") {
-      const localTouchPlayer = players.find((player) => player.label === "Du" && player.inputChoice === "touch") ?? null;
-      if (localTouchPlayer?.slot === 1) {
-        touchPlayer1 = localTouchPlayer;
-      }
-      if (localTouchPlayer?.slot === 2) {
-        touchPlayer2 = localTouchPlayer;
-      }
     } else {
       touchPlayer1 = players.find((player) => !player.isBot && player.slot === 1 && player.inputChoice === "touch") ?? null;
       touchPlayer2 = players.find((player) => !player.isBot && player.slot === 2 && player.inputChoice === "touch") ?? null;
@@ -6283,6 +5481,7 @@ function updateTouchControlsVisibility(players = game.players) {
   }
 
   const shouldShowControls = Boolean(touchPlayer1 || touchPlayer2);
+  document.body.classList.toggle("mobile-touch-ui", shouldShowControls);
   ui.touchControls.hidden = !shouldShowControls;
   ui.touchControls.classList.toggle("dual-touch", Boolean(touchPlayer1 && touchPlayer2));
   ui.touchPanelP1.hidden = !touchPlayer1;
@@ -6379,12 +5578,6 @@ function togglePause() {
 }
 
 function handleCharacterBack() {
-  if (appState.mode === "online") {
-    showScreen("modeScreen");
-    refreshModeScreen();
-    return;
-  }
-
   if (appState.selectingSlot === 2) {
     appState.selectingSlot = 1;
     appState.selectedCharacterId = appState.selections.player1 || appState.lastSelections.player1 || CHARACTER_DATA[0].id;
@@ -6399,9 +5592,6 @@ function handleCharacterBack() {
 function resetToMenu() {
   game.stopMatch();
   hidePauseOverlay();
-  if (appState.mode === "online" || appState.online.roomCode || appState.online.connected) {
-    onlineManager.leaveRoom(true);
-  }
   appState.mode = null;
   ui.touchControls.hidden = true;
   ui.touchControls.classList.remove("dual-touch");
@@ -6445,9 +5635,6 @@ function assignInputChoice(playerKey, inputChoice) {
 
 function activateMode(mode) {
   game.sound.unlock();
-  if (appState.mode === "online" && mode !== "online" && (appState.online.roomCode || appState.online.connected)) {
-    onlineManager.leaveRoom(true);
-  }
   appState.mode = mode;
   if (!appState.inputSelections.player1) {
     appState.inputSelections.player1 = "keyboard";
@@ -6460,22 +5647,10 @@ function activateMode(mode) {
   updateTouchControlsVisibility();
 }
 
-ui.startButton.addEventListener("click", () => {
-  game.sound.unlock();
-  appState.mode = null;
-  showScreen("modeScreen");
-  refreshModeScreen();
-  updateTouchControlsVisibility([]);
-});
-
-ui.quickLocalButton.addEventListener("click", () => activateMode("local"));
-ui.quickBotButton.addEventListener("click", () => activateMode("bot"));
-ui.quickOnlineButton.addEventListener("click", () => activateMode("online"));
+ui.quickLocalButton?.addEventListener("click", () => activateMode("local"));
+ui.quickBotButton?.addEventListener("click", () => activateMode("bot"));
 
 ui.modeBackButton.addEventListener("click", () => {
-  if (appState.mode === "online" || appState.online.roomCode || appState.online.connected) {
-    onlineManager.leaveRoom(true);
-  }
   appState.mode = null;
   showScreen("mainMenu");
   updateTouchControlsVisibility([]);
@@ -6507,63 +5682,13 @@ ui.difficultyBackButton.addEventListener("click", () => {
   refreshModeScreen();
 });
 ui.continueToCharactersButton.addEventListener("click", continueFromSetup);
-ui.onlineCreateRoomButton.addEventListener("click", () => {
-  onlineManager.createRoom();
-});
-ui.onlineJoinRoomButton.addEventListener("click", () => {
-  onlineManager.joinRoom(ui.onlineRoomCodeInput.value);
-});
-ui.onlineContinueButton.addEventListener("click", continueFromOnlineLobby);
-ui.onlineLeaveRoomButton.addEventListener("click", () => {
-  const hadRoom = Boolean(appState.online.roomCode);
-  onlineManager.leaveRoom(!hadRoom);
-  if (!hadRoom) {
-    appState.mode = null;
-    showScreen("mainMenu");
-  } else {
-    refreshModeScreen();
-  }
-});
-ui.onlineCopyRoomCodeButton.addEventListener("click", async () => {
-  if (!appState.online.roomCode) {
-    return;
-  }
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(appState.online.roomCode);
-      onlineManager.pushSystemMessage(`Raumcode ${appState.online.roomCode} wurde in die Zwischenablage kopiert.`);
-    }
-  } catch {
-    appState.online.error = "Raumcode konnte nicht kopiert werden.";
-    refreshModeScreen();
-  }
-});
-ui.onlineChatSendButton.addEventListener("click", () => {
-  onlineManager.sendChat(ui.onlineChatInput.value);
-});
-ui.onlineChatInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    onlineManager.sendChat(ui.onlineChatInput.value);
-  }
-});
-ui.onlineRoomCodeInput.addEventListener("input", () => {
-  ui.onlineRoomCodeInput.value = normalizeRoomCode(ui.onlineRoomCodeInput.value);
-});
 
 ui.characterBackButton.addEventListener("click", handleCharacterBack);
 ui.confirmCharacterTopButton.addEventListener("click", confirmCharacterSelection);
 ui.confirmCharacterButton.addEventListener("click", confirmCharacterSelection);
-ui.onlineStartBattleButton.addEventListener("click", () => {
-  onlineManager.requestMatchStart();
-});
 ui.resumeButton.addEventListener("click", resumeMatch);
 ui.pauseMenuButton.addEventListener("click", resetToMenu);
 ui.playAgainButton.addEventListener("click", () => {
-  if (appState.mode === "online") {
-    resetToMenu();
-    return;
-  }
   openCharacterSelection();
 });
 ui.backToMenuButton.addEventListener("click", resetToMenu);
@@ -6574,7 +5699,6 @@ renderLives(ui.p2Lives, GAME.stockLives);
 updateCharacterDetail();
 updateSelectionHeader();
 refreshModeScreen();
-renderOnlineChatMessages();
 
 let lastTimestamp = 0;
 let accumulator = 0;
@@ -6590,7 +5714,6 @@ function appTick(timestamp) {
 
   inputManager.pollGamepads();
   refreshTouchControls();
-  onlineManager.tick();
 
   if (appState.screen === "modeScreen") {
     refreshModeScreen();
@@ -6599,16 +5722,16 @@ function appTick(timestamp) {
   handleBattlePauseInput();
   refreshLiveBattleWarnings();
 
-  while (accumulator >= ONLINE.fixedStep) {
+  while (accumulator >= GAME_LOOP.fixedStep) {
     if (appState.screen === "battleScreen" && game.active) {
       if (!game.pauseRequested && !game.matchOver) {
-        game.update(ONLINE.fixedStep);
+        game.update(GAME_LOOP.fixedStep);
       }
       inputManager.endFrame();
     } else {
       inputManager.endFrame();
     }
-    accumulator -= ONLINE.fixedStep;
+    accumulator -= GAME_LOOP.fixedStep;
   }
 
   if (appState.screen === "battleScreen" && game.active) {

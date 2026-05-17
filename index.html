@@ -23,7 +23,7 @@
 
         <div class="hero-tags">
           <span>Canvas Arena</span>
-          <span>Lokal, Bot oder Online</span>
+          <span>Lokal oder Bot</span>
           <span>15 Kaempfer</span>
           <span>Neue Faehigkeiten</span>
           <span>Ps, Xbox und Handy Support</span>
@@ -31,13 +31,8 @@
 
         <div class="hero-mode-actions">
           <div class="hero-primary-actions">
-            <button id="quickLocalButton" class="hero-menu-button" type="button">Lokal spielen</button>
+            <button id="quickLocalButton" class="hero-menu-button" type="button">Zwei Spieler lokal</button>
             <button id="quickBotButton" class="hero-menu-button" type="button">Gegen Bot spielen</button>
-            <button id="quickOnlineButton" class="hero-menu-button" type="button">Online spielen</button>
-          </div>
-
-          <div class="hero-secondary-action">
-            <button id="startButton" class="hero-menu-button hero-menu-button-wide" type="button">Alle Optionen ansehen</button>
           </div>
         </div>
 
@@ -58,7 +53,7 @@
       <div class="panel mode-panel">
         <p class="eyebrow">Schritt 1</p>
         <h2>Kampfmodus waehlen</h2>
-        <p class="section-copy">Vor jeder Runde legst du fest, ob ihr lokal spielt, gegen einen Bot antretet oder online in einen Raum geht.</p>
+        <p class="section-copy">Vor jeder Runde legst du fest, ob ihr lokal zu zweit spielt oder gegen einen Bot antretet.</p>
 
         <div class="mode-grid">
           <button class="mode-card" data-mode="local">
@@ -73,11 +68,6 @@
             <p>Ein reaktiver Gegner mit 4 Schwierigkeitsstufen von Anfaenger bis beinahe unschlagbar.</p>
           </button>
 
-          <button class="mode-card" data-mode="online">
-            <span class="mode-tag">Online</span>
-            <strong>Online spielen</strong>
-            <p>Erstelle einen Raumcode, joine mit einem Freund und kaempft ueber WebSockets gegeneinander.</p>
-          </button>
         </div>
 
         <div id="botDifficultyPanel" class="bot-difficulty-panel" hidden>
@@ -140,7 +130,7 @@
           <div class="controller-panel">
             <div class="controller-panel-heading">
               <strong>Controller-Status</strong>
-              <span>Ps- und Xbox-Controller werden live erkannt. Druecke bei Bedarf eine Taste am Controller.</span>
+              <span>Ps- und Xbox-Controller werden live erkannt. Falls dein Controller nicht reagiert, druecke einmal eine beliebige Taste.</span>
             </div>
 
             <div class="controller-status-grid">
@@ -247,81 +237,6 @@
           <p id="setupErrorText" class="setup-error"></p>
         </div>
 
-        <div id="onlinePanel" class="online-panel" hidden>
-          <div class="setup-header">
-            <div>
-              <p class="eyebrow">Schritt 1D</p>
-              <h3>Online-Lobby</h3>
-              <p id="onlineSubtitle" class="section-copy">
-                Erstelle einen Raum oder tritt mit einem Code bei. Sobald dein Gegner verbunden ist, geht es weiter zur Charakterauswahl.
-              </p>
-            </div>
-
-            <div class="panel-heading-actions">
-              <button id="onlineCreateRoomButton" class="primary-button" type="button">Raum erstellen</button>
-              <button id="onlineJoinRoomButton" class="secondary-button" type="button">Raum beitreten</button>
-            </div>
-          </div>
-
-          <div class="online-room-grid">
-            <div class="online-room-card">
-              <span class="detail-label">Raum-Zugang</span>
-              <strong>Raumcode und Status</strong>
-              <p class="section-copy">
-                Gib einen Code ein oder erstelle einen neuen Raum. Online funktioniert ueber den Node-Server mit WebSockets.
-              </p>
-
-              <div class="online-code-row">
-                <input id="onlineRoomCodeInput" class="online-input" type="text" maxlength="8" placeholder="Raumcode eingeben">
-                <button id="onlineCopyRoomCodeButton" class="secondary-button" type="button">Code kopieren</button>
-              </div>
-
-              <div class="online-status-stack">
-                <div class="online-status-line">
-                  <span>Verbindung</span>
-                  <strong id="onlineConnectionValue">Offline</strong>
-                </div>
-                <div class="online-status-line">
-                  <span>Raumcode</span>
-                  <strong id="onlineRoomCodeValue">Kein Raum</strong>
-                </div>
-                <div class="online-status-line">
-                  <span>Gegner</span>
-                  <strong id="onlineOpponentValue">Warte auf zweiten Spieler...</strong>
-                </div>
-                <div class="online-status-line">
-                  <span>Ping</span>
-                  <strong id="onlinePingValue">-- ms</strong>
-                </div>
-              </div>
-
-              <p id="onlineServerHint" class="section-copy">
-                Wenn kein Server erkannt wird, starte `npm install` und danach `npm start`.
-              </p>
-
-              <div class="panel-heading-actions online-room-actions">
-                <button id="onlineContinueButton" class="primary-button" type="button" disabled>Zur Charakterauswahl</button>
-                <button id="onlineLeaveRoomButton" class="secondary-button" type="button">Zurueck zum Menue</button>
-              </div>
-            </div>
-
-            <div class="online-room-card">
-              <span class="detail-label">Warteraum-Chat</span>
-              <strong>Nur vor dem Kampf aktiv</strong>
-              <p class="section-copy">Schreibe deinem Freund kurz im Warteraum. Im Kampf wird der Chat automatisch deaktiviert.</p>
-
-              <div id="onlineChatMessages" class="online-chat-messages"></div>
-
-              <div class="online-chat-row">
-                <input id="onlineChatInput" class="online-input" type="text" maxlength="160" placeholder="Nachricht schreiben">
-                <button id="onlineChatSendButton" class="primary-button" type="button">Senden</button>
-              </div>
-            </div>
-          </div>
-
-          <p id="onlineErrorText" class="setup-error" hidden></p>
-        </div>
-
         <button id="modeBackButton" class="secondary-button">Zur&uuml;ck</button>
       </div>
     </section>
@@ -338,7 +253,6 @@
           </div>
 
           <div class="panel-heading-actions">
-            <button id="onlineStartBattleButton" class="primary-button" type="button" hidden>Kampf starten</button>
             <button id="confirmCharacterTopButton" class="primary-button">Spieler 1 bestaetigen</button>
             <button id="characterBackButton" class="secondary-button">Zur&uuml;ck</button>
           </div>
@@ -399,25 +313,6 @@
 
             <div id="detailStats" class="stat-cluster"></div>
 
-            <div id="onlineCharacterPanel" class="online-character-panel" hidden>
-              <span class="detail-label">Online-Raum</span>
-              <strong id="onlineCharacterRoomLabel">Raum: ----</strong>
-              <p id="onlineCharacterStatus" class="section-copy">
-                Bestaetige deinen Charakter. Sobald beide Spieler bereit sind, kann der Host den Kampf starten.
-              </p>
-
-              <div class="online-selection-grid">
-                <div class="online-selection-card">
-                  <span>Du</span>
-                  <strong id="onlineLocalSelectionValue">Nicht bestaetigt</strong>
-                </div>
-                <div class="online-selection-card">
-                  <span>Gegner</span>
-                  <strong id="onlineRemoteSelectionValue">Warte...</strong>
-                </div>
-              </div>
-            </div>
-
             <button id="confirmCharacterButton" class="primary-button">Charakter bestaetigen</button>
           </aside>
         </div>
@@ -451,8 +346,6 @@
           <div class="hud-center">
             <div id="modeBadge" class="mode-badge">Gegen Bot</div>
             <div class="hud-tip">ESC pausiert</div>
-            <div id="networkBadge" class="hud-tip network-badge" hidden>Ping: -- ms</div>
-            <div id="networkWarning" class="network-warning" hidden>Verbindung instabil</div>
           </div>
 
           <div class="hud-card player-two-card">
