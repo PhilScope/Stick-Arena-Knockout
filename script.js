@@ -25,9 +25,6 @@ const ui = {
   controllerStatus0: document.getElementById("controllerStatus0"),
   controllerStatus1: document.getElementById("controllerStatus1"),
   controllerWarningText: document.getElementById("controllerWarningText"),
-  controllerDebugPanel: document.getElementById("controllerDebugPanel"),
-  controllerDebug0: document.getElementById("controllerDebug0"),
-  controllerDebug1: document.getElementById("controllerDebug1"),
   setupErrorText: document.getElementById("setupErrorText"),
   inputOptionButtons: [...document.querySelectorAll(".input-option-button")],
   player2AssignmentCard: document.getElementById("player2AssignmentCard"),
@@ -36,6 +33,7 @@ const ui = {
   player2AssignmentCopy: document.getElementById("player2AssignmentCopy"),
   player2InputOptions: document.getElementById("player2InputOptions"),
   characterGrid: document.getElementById("characterGrid"),
+  characterDetail: document.querySelector(".character-detail"),
   selectionStep: document.getElementById("selectionStep"),
   selectionTitle: document.getElementById("selectionTitle"),
   selectionSubtitle: document.getElementById("selectionSubtitle"),
@@ -44,7 +42,7 @@ const ui = {
   detailBadge: document.getElementById("detailBadge"),
   detailName: document.getElementById("detailName"),
   detailDescription: document.getElementById("detailDescription"),
-  detailDesign: document.getElementById("detailDesign"),
+  detailPreviewCanvas: document.getElementById("detailPreviewCanvas"),
   detailNormalName: document.getElementById("detailNormalName"),
   detailNormalDescription: document.getElementById("detailNormalDescription"),
   detailSpecialName: document.getElementById("detailSpecialName"),
@@ -94,13 +92,6 @@ const ui = {
   pauseMessage: document.getElementById("pauseMessage"),
   resumeButton: document.getElementById("resumeButton"),
   pauseMenuButton: document.getElementById("pauseMenuButton"),
-  touchControls: document.getElementById("touchControls"),
-  touchStatusLabel: document.getElementById("touchStatusLabel"),
-  touchPanelP1: document.getElementById("touchPanelP1"),
-  touchPanelP2: document.getElementById("touchPanelP2"),
-  touchButtons: [...document.querySelectorAll("[data-touch-player][data-touch-action]")],
-  inputTestAction: document.getElementById("inputTestAction"),
-  inputTestSource: document.getElementById("inputTestSource"),
   endPanel: document.getElementById("endPanel"),
   endEyebrow: document.getElementById("endEyebrow"),
   endTitle: document.getElementById("endTitle"),
@@ -133,7 +124,6 @@ const GAME_LOOP = {
 
 const INPUT_LABELS = {
   keyboard: "Tastatur",
-  touch: "Handy Touch",
   controller0: "Controller 1",
   controller1: "Controller 2",
   controller0ps: "Ps Controller 1",
@@ -169,7 +159,8 @@ const KEYBOARD_LAYOUTS = {
 const PS_CONTROLLER_HELP_TEXT = "Linker Stick oder D-Pad links/rechts bewegen, X springen, Kreis normaler Angriff, Quadrat Spezial, Dreieck neue Faehigkeit, L1 blocken, Options pausieren";
 const XBOX_CONTROLLER_HELP_TEXT = "Linker Stick oder Steuerkreuz links/rechts bewegen, A springen, B normaler Angriff, X Spezial, Y neue Faehigkeit, LB blocken, Menu pausieren";
 const GENERIC_CONTROLLER_HELP_TEXT = "Linker Stick oder D-Pad links/rechts bewegen, untere Taste springen, rechte Taste normaler Angriff, linke Taste Spezial, obere Taste Faehigkeit, linke Schultertaste blocken, Start/Menu pausieren";
-const TOUCH_HELP_TEXT = "On-Screen-Buttons: Links/Rechts bewegen, Sprung, Block, Angriff, Spezial, Faehigkeit und Pause direkt auf dem Handy-Bildschirm. Im lokalen Touch-Duell bekommt jeder Spieler ein eigenes Pad.";
+const COMPACT_PS_CONTROLLER_HELP_TEXT = "Stick oder D-Pad, X Sprung, Kreis Angriff, Quadrat Spezial, Dreieck Faehigkeit, L1 Block";
+const COMPACT_XBOX_CONTROLLER_HELP_TEXT = "Stick oder D-Pad, A Sprung, B Angriff, X Spezial, Y Faehigkeit, LB Block";
 const ACTION_LABELS = {
   left: "Links",
   right: "Rechts",
@@ -1050,9 +1041,6 @@ function getInputChoiceLabel(choice, slot) {
   if (choice === "keyboard") {
     return slot === 2 ? "Tastatur P2" : "Tastatur P1";
   }
-  if (choice === "touch") {
-    return slot === 2 ? "Handy Touch P2" : "Handy Touch P1";
-  }
   return INPUT_LABELS[choice] ?? "Unbekannt";
 }
 
@@ -1109,6 +1097,29 @@ function showScreen(screenName) {
   appState.screen = screenName;
   Object.values(screens).forEach((screen) => screen.classList.remove("active"));
   screens[screenName].classList.add("active");
+  scheduleCharacterDetailHeightSync();
+}
+
+function syncCharacterDetailHeight() {
+  if (!ui.characterGrid || !ui.characterDetail) {
+    return;
+  }
+
+  if (appState.screen !== "characterScreen" || window.innerWidth <= 1080) {
+    ui.characterDetail.style.removeProperty("height");
+    return;
+  }
+
+  const gridHeight = Math.ceil(ui.characterGrid.getBoundingClientRect().height);
+  if (gridHeight > 0) {
+    ui.characterDetail.style.height = `${gridHeight}px`;
+  }
+}
+
+function scheduleCharacterDetailHeightSync() {
+  window.requestAnimationFrame(() => {
+    syncCharacterDetailHeight();
+  });
 }
 
 function formatKeyCode(code) {
@@ -1157,8 +1168,51 @@ function getControllerControlText(botSlot = false, scheme = "generic") {
   return `${getControllerHelpTextForScheme(scheme)}.`;
 }
 
-function getTouchControlText() {
-  return TOUCH_HELP_TEXT;
+function getCompactKeyboardControlTextForSlot(slot, botSlot = false) {
+  if (botSlot) {
+    return "Bot-KI steuert diesen Slot automatisch.";
+  }
+
+  if (slot === 1) {
+    return "A/D laufen, W springen, S blocken, F Angriff, G Spezial, H Faehigkeit.";
+  }
+
+  return "Pfeile laufen, Hoch springen, Runter blocken, K Angriff, L Spezial, M/Oe Faehigkeit.";
+}
+
+function getCompactControllerControlText(botSlot = false, choice = "generic") {
+  if (botSlot) {
+    return "Bot-KI uebernimmt Controller-Eingaben fuer Slot 2.";
+  }
+
+  const scheme = getResolvedControllerScheme(choice);
+  if (scheme === "ps") {
+    return COMPACT_PS_CONTROLLER_HELP_TEXT;
+  }
+  if (scheme === "xbox") {
+    return COMPACT_XBOX_CONTROLLER_HELP_TEXT;
+  }
+  return "Stick oder D-Pad bewegen, Hauptbuttons fuer Sprung, Angriff, Spezial und Faehigkeit.";
+}
+
+function compactDetailText(text, maxLength = 110) {
+  const normalized = `${text ?? ""}`.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  const sliced = normalized.slice(0, maxLength);
+  const boundary = Math.max(
+    sliced.lastIndexOf(". "),
+    sliced.lastIndexOf(", "),
+    sliced.lastIndexOf("; "),
+    sliced.lastIndexOf(" "),
+  );
+  const cutIndex = boundary > Math.floor(maxLength * 0.65) ? boundary : maxLength;
+  return `${sliced.slice(0, cutIndex).replace(/[.,;:!?-]+$/g, "").trim()}...`;
 }
 
 function getActionLabel(actionKey) {
@@ -1222,112 +1276,6 @@ function isControllerChoiceCompatible(choice) {
 
   const detectedFamily = detectControllerFamilyFromId(state.id);
   return detectedFamily === expectedFamily || detectedFamily === "generic";
-}
-
-function getControllerSourceLabel(slot, id = "") {
-  const family = detectControllerFamilyFromId(id);
-  const familyLabel = getControllerFamilyLabel(family);
-  return family === "generic" ? `Controller ${slot + 1}` : `${familyLabel} Controller ${slot + 1}`;
-}
-
-function formatAxisValue(value) {
-  return Number.isFinite(value) ? value.toFixed(2) : "0.00";
-}
-
-function getPressedButtonIndices(state) {
-  if (!state?.buttonsDown) {
-    return [];
-  }
-
-  const indices = [];
-  for (let index = 0; index < state.buttonsDown.length; index += 1) {
-    if (state.buttonsDown[index]) {
-      indices.push(index);
-    }
-  }
-  return indices;
-}
-
-function getControllerActionLabels(state) {
-  if (!state?.connected) {
-    return [];
-  }
-
-  const labels = [];
-  const axisX = Math.abs(state.axes?.[0] ?? 0) > GAMEPAD_AXIS_THRESHOLD ? state.axes[0] : 0;
-
-  if (axisX < -GAMEPAD_AXIS_THRESHOLD || state.buttonsDown[14]) {
-    labels.push("Left");
-  }
-  if (axisX > GAMEPAD_AXIS_THRESHOLD || state.buttonsDown[15]) {
-    labels.push("Right");
-  }
-  if (state.buttonsDown[0]) {
-    labels.push("Jump");
-  }
-  if (state.buttonsDown[1]) {
-    labels.push("Attack");
-  }
-  if (state.buttonsDown[2]) {
-    labels.push("Special");
-  }
-  if (state.buttonsDown[3]) {
-    labels.push("Ability");
-  }
-  if (state.buttonsDown[4]) {
-    labels.push("Block");
-  }
-  if (state.buttonsDown[9]) {
-    labels.push("Pause");
-  }
-
-  return labels;
-}
-
-function reportInputTest(source, actionKey, detail = "") {
-  if (!ui.inputTestAction || !ui.inputTestSource) {
-    return;
-  }
-
-  ui.inputTestAction.textContent = getActionLabel(actionKey);
-  ui.inputTestSource.textContent = detail ? `${source} - ${detail}` : source;
-}
-
-function getKeyboardTestInfo(code) {
-  const layouts = [
-    { source: "Tastatur P1", mapping: KEYBOARD_LAYOUTS.player1 },
-    { source: "Tastatur P2", mapping: KEYBOARD_LAYOUTS.player2 },
-  ];
-
-  for (const layout of layouts) {
-    const { source, mapping } = layout;
-    if (code === mapping.left) {
-      return { source, action: "left" };
-    }
-    if (code === mapping.right) {
-      return { source, action: "right" };
-    }
-    if (code === mapping.jump) {
-      return { source, action: "jump" };
-    }
-    if (code === mapping.block) {
-      return { source, action: "block" };
-    }
-    if (code === mapping.attack) {
-      return { source, action: "attack" };
-    }
-    if (code === mapping.special) {
-      return { source, action: "special" };
-    }
-    if (mapping.ability.includes(code)) {
-      return { source, action: "ability" };
-    }
-    if (mapping.pause.includes(code)) {
-      return { source, action: "pause" };
-    }
-  }
-
-  return null;
 }
 
 function cloneAction(action = DEFAULT_ACTION()) {
@@ -1815,22 +1763,6 @@ class InputManager {
     this.keyboardDown = new Set();
     this.keyboardPressed = new Set();
     this.keyboardReleased = new Set();
-    this.touchDown = {
-      1: new Set(),
-      2: new Set(),
-    };
-    this.touchPressed = {
-      1: new Set(),
-      2: new Set(),
-    };
-    this.touchReleased = {
-      1: new Set(),
-      2: new Set(),
-    };
-    this.touchPointers = {
-      1: new Map(),
-      2: new Map(),
-    };
     this.gamepads = [this.createGamepadSlot(0), this.createGamepadSlot(1)];
     this.connectedCount = 0;
     this.preventedKeys = new Set([
@@ -1856,7 +1788,6 @@ class InputManager {
     document.addEventListener("keyup", (event) => this.onKeyUp(event));
     window.addEventListener("gamepadconnected", () => this.pollGamepads());
     window.addEventListener("gamepaddisconnected", () => this.pollGamepads());
-    this.bindTouchButtons(ui.touchButtons);
   }
 
   createGamepadSlot(slot) {
@@ -1897,11 +1828,6 @@ class InputManager {
       this.keyboardPressed.add(event.code);
     }
     this.keyboardDown.add(event.code);
-
-    const keyboardTest = getKeyboardTestInfo(event.code);
-    if (keyboardTest) {
-      reportInputTest(keyboardTest.source, keyboardTest.action);
-    }
   }
 
   onKeyUp(event) {
@@ -1912,57 +1838,6 @@ class InputManager {
       this.keyboardReleased.add(event.code);
     }
     this.keyboardDown.delete(event.code);
-  }
-
-  bindTouchButtons(buttons) {
-    buttons.forEach((button) => {
-      const actionName = button.dataset.touchAction;
-      const touchPlayer = Number(button.dataset.touchPlayer || "1");
-      if (!actionName || !this.touchDown[touchPlayer] || !this.touchPressed[touchPlayer]) {
-        return;
-      }
-
-      const pointerRegistry = this.touchPointers[touchPlayer];
-      if (!pointerRegistry.has(actionName)) {
-        pointerRegistry.set(actionName, new Set());
-      }
-      const activePointers = pointerRegistry.get(actionName);
-
-      const release = (event) => {
-        if (event) {
-          event.preventDefault();
-        }
-        if (event && activePointers.has(event.pointerId)) {
-          activePointers.delete(event.pointerId);
-        }
-        if (activePointers.size === 0) {
-          if (this.touchDown[touchPlayer].delete(actionName)) {
-            this.touchReleased[touchPlayer].add(actionName);
-          }
-          button.classList.remove("active");
-        }
-      };
-
-      button.addEventListener("pointerdown", (event) => {
-        event.preventDefault();
-        const wasActive = this.touchDown[touchPlayer].has(actionName);
-        this.touchReleased[touchPlayer].delete(actionName);
-        activePointers.add(event.pointerId);
-        if (!wasActive) {
-          this.touchPressed[touchPlayer].add(actionName);
-        }
-        this.touchDown[touchPlayer].add(actionName);
-        button.classList.add("active");
-        if (button.setPointerCapture) {
-          button.setPointerCapture(event.pointerId);
-        }
-      });
-
-      button.addEventListener("pointerup", release);
-      button.addEventListener("pointercancel", release);
-      button.addEventListener("lostpointercapture", release);
-      button.addEventListener("contextmenu", (event) => event.preventDefault());
-    });
   }
 
   pollGamepads() {
@@ -2053,10 +1928,6 @@ class InputManager {
 
         state.previousButtons = nextButtonsDown.slice();
         state.previousAxes = state.axes.slice();
-
-        if (reportedAction) {
-          reportInputTest(getControllerSourceLabel(slot, state.id), reportedAction, state.id);
-        }
       } else {
         state.connected = false;
         state.physicalIndex = -1;
@@ -2079,16 +1950,6 @@ class InputManager {
 
   hasController(slot) {
     return Boolean(this.gamepads[slot] && this.gamepads[slot].connected);
-  }
-
-  clearTouchSlot(slot) {
-    if (!this.touchDown[slot] || !this.touchPressed[slot] || !this.touchReleased[slot] || !this.touchPointers[slot]) {
-      return;
-    }
-    this.touchDown[slot].clear();
-    this.touchPressed[slot].clear();
-    this.touchReleased[slot].clear();
-    this.touchPointers[slot].forEach((pointerSet) => pointerSet.clear());
   }
 
   isCodeDown(code) {
@@ -2170,31 +2031,11 @@ class InputManager {
     return syncActionBooleans(action);
   }
 
-  getTouchAction(slot) {
-    if (appState.mode === "bot" && slot === 2) {
-      return DEFAULT_ACTION();
-    }
-
-    const touchDown = this.touchDown[slot] ?? this.touchDown[1];
-    const touchPressed = this.touchPressed[slot] ?? this.touchPressed[1];
-    const touchReleased = this.touchReleased[slot] ?? this.touchReleased[1];
-    const action = DEFAULT_ACTION();
-    for (const actionName of ACTION_NAMES) {
-      action.heldActions[actionName] = touchDown.has(actionName);
-      action.pressedActions[actionName] = touchPressed.has(actionName);
-      action.releasedActions[actionName] = touchReleased.has(actionName);
-    }
-    return syncActionBooleans(action);
-  }
-
   getActionForChoice(choice, slot) {
     const actionSources = [];
 
     if (choice === "keyboard") {
       actionSources.push(this.getKeyboardAction(slot));
-    }
-    if (choice === "touch") {
-      actionSources.push(this.getTouchAction(slot));
     }
 
     const controllerSlot = getControllerSlotFromChoice(choice);
@@ -2222,10 +2063,6 @@ class InputManager {
   endFrame() {
     this.keyboardPressed.clear();
     this.keyboardReleased.clear();
-    this.touchPressed[1].clear();
-    this.touchPressed[2].clear();
-    this.touchReleased[1].clear();
-    this.touchReleased[2].clear();
     for (const pad of this.gamepads) {
       pad.buttonsPressed.fill(false);
       pad.buttonsReleased.fill(false);
@@ -4414,16 +4251,12 @@ class ArenaGame {
     this.elapsed = 0;
     this.shakeTime = 0;
     this.shakeMagnitude = 0;
-    if (mode === "bot") {
-      inputManager.clearTouchSlot(2);
-    }
     this.spawnPlayers();
     this.updateHud(true);
     this.setCountdownLabel("3");
     showScreen("battleScreen");
     focusBattleCanvas();
     hidePauseOverlay();
-    updateTouchControlsVisibility(this.players);
   }
 
   stopMatch() {
@@ -4435,14 +4268,12 @@ class ArenaGame {
     this.particles = [];
     this.scheduledEvents = [];
     this.setCountdownLabel("");
-    updateTouchControlsVisibility([]);
   }
 
   spawnPlayers() {
     const y = this.platform.y - 26;
     this.players[0].spawn(this.platform.x + this.platform.width * 0.28, y, 1);
     this.players[1].spawn(this.platform.x + this.platform.width * 0.72, y, -1);
-    updateTouchControlsVisibility(this.players);
   }
 
   schedule(delay, callback) {
@@ -5089,10 +4920,6 @@ function updateGuidePanel(player, titleElement, moveElement, attackElement, abil
     moveElement.textContent = `${inputLabel}: ${formatKeyCode(mapping.left)}/${formatKeyCode(mapping.right)} bewegen | ${formatKeyCode(mapping.jump)} springen | ${formatKeyCode(mapping.block)} blocken`;
     attackElement.textContent = `${formatKeyCode(mapping.attack)} ${player.character.normalAttackName} | ${formatKeyCode(mapping.special)} ${player.character.specialName}`;
     abilityElement.textContent = `${formatKeyCode(mapping.ability[0])} ${player.character.abilityName} | ${formatKeyCode(mapping.pause[0])} Pause`;
-  } else if (player.inputChoice === "touch") {
-    moveElement.textContent = `${inputLabel}: eigenes Touch-Pad | Links/Rechts | Sprung-Button | Block-Button`;
-    attackElement.textContent = `Angriff ${player.character.normalAttackName} | Spezial ${player.character.specialName}`;
-    abilityElement.textContent = `Faehigkeit ${player.character.abilityName} | Pause-Button`;
   } else {
     const scheme = getResolvedControllerScheme(player.inputChoice);
     if (scheme === "xbox") {
@@ -5105,6 +4932,121 @@ function updateGuidePanel(player, titleElement, moveElement, attackElement, abil
       abilityElement.textContent = `Dreieck ${player.character.abilityName} | Options Pause`;
     }
   }
+}
+
+function createPreviewPlayer(character) {
+  const previewPlayer = new Player(1, character, "keyboard", false);
+  previewPlayer.onGround = true;
+  previewPlayer.vx = 140;
+  previewPlayer.vy = 0;
+  previewPlayer.invulnerableTimer = 0;
+  previewPlayer.hitTimer = 0;
+  previewPlayer.attackPoseTimer = 0;
+  previewPlayer.blocking = false;
+  previewPlayer.facing = 1;
+  previewPlayer.spawnFlash = 0;
+
+  switch (character.id) {
+    case "boxer":
+      previewPlayer.rageTimer = 1;
+      break;
+    case "magier":
+      previewPlayer.shieldTimer = 1;
+      break;
+    case "tank":
+      previewPlayer.unstoppableTimer = 1;
+      break;
+    case "springer":
+      previewPlayer.featherWindowTimer = 1;
+      break;
+    case "samurai":
+      previewPlayer.counterWindowTimer = 1;
+      break;
+    case "assassine":
+      previewPlayer.invisibleTimer = 0.9;
+      break;
+    case "blitzkaempfer":
+      previewPlayer.surgeTrailTimer = 1;
+      break;
+    case "feuerlord":
+      previewPlayer.burnAuraTimer = 1;
+      break;
+    case "schattenkrieger":
+      previewPlayer.illusionTimer = 1;
+      break;
+    case "cyborg":
+      previewPlayer.overloadTimer = 1;
+      break;
+    case "berserker":
+      previewPlayer.bloodrushTimer = 1;
+      break;
+    case "windlaeufer":
+      previewPlayer.glideTimer = 1;
+      break;
+    case "titan":
+      previewPlayer.standfastTimer = 1;
+      break;
+    default:
+      break;
+  }
+
+  return previewPlayer;
+}
+
+function renderCharacterPreviewCanvas(canvasElement, character, options = {}) {
+  if (!canvasElement || !character) {
+    return;
+  }
+
+  const context = canvasElement.getContext("2d");
+  const width = canvasElement.width;
+  const height = canvasElement.height;
+  const compact = Boolean(options.compact);
+  const accent = character.accent;
+  const secondary = character.accentSecondary;
+  const previewPlayer = createPreviewPlayer(character);
+  const elapsed = options.elapsed ?? 920;
+  let scale = compact ? 0.84 : 1.18;
+  const baseFootY = 42;
+
+  if (HEAVY_CHARACTER_IDS.has(character.id)) {
+    scale *= 0.93;
+  }
+  if (character.id === "titan") {
+    scale *= 0.9;
+  }
+
+  context.clearRect(0, 0, width, height);
+
+  const baseGradient = context.createLinearGradient(0, 0, 0, height);
+  baseGradient.addColorStop(0, "rgba(8, 16, 36, 0.96)");
+  baseGradient.addColorStop(1, "rgba(4, 9, 22, 0.98)");
+  context.fillStyle = baseGradient;
+  context.fillRect(0, 0, width, height);
+
+  const glow = context.createRadialGradient(width * 0.5, height * 0.3, 12, width * 0.5, height * 0.4, width * 0.48);
+  glow.addColorStop(0, `${accent}44`);
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = glow;
+  context.fillRect(0, 0, width, height);
+
+  const floorLineY = height - (compact ? 18 : 22);
+  context.strokeStyle = "rgba(124, 200, 255, 0.16)";
+  context.lineWidth = 1;
+  context.beginPath();
+  context.moveTo(18, floorLineY);
+  context.lineTo(width - 18, floorLineY);
+  context.stroke();
+
+  context.save();
+  context.translate(width * 0.5, floorLineY - baseFootY * scale);
+  context.scale(scale, scale);
+  previewPlayer.draw(context, elapsed);
+  context.restore();
+
+  context.strokeStyle = `${secondary}88`;
+  context.lineWidth = 2;
+  context.strokeRect(1, 1, width - 2, height - 2);
 }
 
 function getHumanDetailKeyboardText(slot) {
@@ -5132,35 +5074,32 @@ function updateCharacterDetail() {
   }
 
   const isBotSlot = appState.mode === "bot" && appState.selectingSlot === 2;
-
-  ui.detailBadge.textContent = character.role;
-  ui.detailName.textContent = character.name;
-  ui.detailDescription.textContent = character.description;
-  ui.detailDesign.textContent = character.designDescription;
-  ui.detailNormalName.textContent = character.normalAttackName;
-  ui.detailNormalDescription.textContent = character.normalAttackDescription;
-  ui.detailSpecialName.textContent = character.specialName;
-  ui.detailSpecialDescription.textContent = character.specialDescription;
-  ui.detailAbilityName.textContent = character.abilityName;
-  ui.detailAbilityDescription.textContent = character.abilityDescription;
-  ui.detailAbilityCooldown.textContent = `Cooldown: ${character.gameplay.abilityCooldown.toFixed(1)} s`;
   const selectedChoice = isBotSlot
     ? "bot"
     : appState.selectingSlot === 2
       ? appState.inputSelections.player2
       : appState.inputSelections.player1;
-  ui.detailKeyboardControls.textContent = isBotSlot
-    ? getKeyboardControlTextForSlot(2, true)
-    : getHumanDetailKeyboardText(appState.selectingSlot);
-  if (!isBotSlot && selectedChoice === "touch") {
-    ui.detailControllerControls.textContent = getTouchControlText();
-  } else {
-    ui.detailControllerControls.textContent = isBotSlot
-      ? getControllerControlText(true)
-      : getControllerControlText(false, getResolvedControllerScheme(selectedChoice));
-  }
-  ui.detailPros.textContent = character.pros;
-  ui.detailCons.textContent = character.cons;
+
+  ui.detailBadge.textContent = character.role;
+  ui.detailName.textContent = character.name;
+  ui.detailDescription.textContent = compactDetailText(character.description, 96);
+  ui.detailNormalName.textContent = character.normalAttackName;
+  ui.detailNormalDescription.textContent = compactDetailText(character.normalAttackDescription, 88);
+  ui.detailSpecialName.textContent = character.specialName;
+  ui.detailSpecialDescription.textContent = compactDetailText(character.specialDescription, 88);
+  ui.detailAbilityName.textContent = character.abilityName;
+  ui.detailAbilityDescription.textContent = compactDetailText(character.abilityDescription, 100);
+  ui.detailAbilityCooldown.textContent = `Cooldown: ${character.gameplay.abilityCooldown.toFixed(1)} s`;
+  renderCharacterPreviewCanvas(ui.detailPreviewCanvas, character, {
+    elapsed: 1240 + CHARACTER_DATA.findIndex((entry) => entry.id === character.id) * 80,
+  });
+  ui.detailKeyboardControls.textContent = getCompactKeyboardControlTextForSlot(
+    isBotSlot ? 2 : appState.selectingSlot,
+    isBotSlot,
+  );
+  ui.detailControllerControls.textContent = getCompactControllerControlText(isBotSlot, selectedChoice);
+  ui.detailPros.textContent = compactDetailText(character.pros, 72);
+  ui.detailCons.textContent = compactDetailText(character.cons, 72);
 
   ui.detailStats.innerHTML = "";
   for (const stat of character.statsText) {
@@ -5196,6 +5135,8 @@ function updateCharacterDetail() {
   if (selectedCard && appState.screen === "characterScreen") {
     selectedCard.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
+
+  scheduleCharacterDetailHeightSync();
 }
 
 function renderCharacterCards() {
@@ -5210,8 +5151,10 @@ function renderCharacterCards() {
     card.innerHTML = `
       <div class="card-accent"></div>
       <div class="character-role">${character.role}</div>
+      <div class="card-preview-frame">
+        <canvas class="card-preview-canvas" width="216" height="134" aria-hidden="true"></canvas>
+      </div>
       <h4>${character.name}</h4>
-      <p>${character.designDescription}</p>
       <div class="card-traits">
         <span>${character.normalAttackName}</span>
         <span>${character.specialName}</span>
@@ -5222,8 +5165,15 @@ function renderCharacterCards() {
       appState.selectedCharacterId = character.id;
       updateCharacterDetail();
     });
+    const previewCanvas = card.querySelector(".card-preview-canvas");
+    renderCharacterPreviewCanvas(previewCanvas, character, {
+      compact: true,
+      elapsed: 880 + CHARACTER_DATA.findIndex((entry) => entry.id === character.id) * 60,
+    });
     ui.characterGrid.appendChild(card);
   }
+
+  scheduleCharacterDetailHeightSync();
 }
 
 function getSelectionInputSummary(slot) {
@@ -5311,44 +5261,6 @@ function updateControllerStatusCard(cardElement, slot, state) {
   label.textContent = `Controller ${slot + 1}`;
 }
 
-function updateControllerDebugCard(cardElement, slot, state) {
-  if (!cardElement) {
-    return;
-  }
-
-  const title = cardElement.querySelector(".controller-debug-title");
-  const nameValue = cardElement.querySelector("[data-debug-name]");
-  const indexValue = cardElement.querySelector("[data-debug-index]");
-  const buttonsValue = cardElement.querySelector("[data-debug-buttons]");
-  const axesValue = cardElement.querySelector("[data-debug-axes]");
-  const actionsValue = cardElement.querySelector("[data-debug-actions]");
-  const label = cardElement.querySelector(".controller-slot-label");
-  const family = detectControllerFamilyFromId(state.id);
-  const familyLabel = getControllerFamilyLabel(family);
-
-  cardElement.classList.toggle("connected", Boolean(state.connected));
-  label.textContent = `Debug Controller ${slot + 1}`;
-
-  if (!state.connected) {
-    title.textContent = "Kein Controller aktiv";
-    nameValue.textContent = "-";
-    indexValue.textContent = "-";
-    buttonsValue.textContent = "Keine";
-    axesValue.textContent = "x: 0.00 | y: 0.00";
-    actionsValue.textContent = "Keine Aktion";
-    return;
-  }
-
-  const buttonIndices = getPressedButtonIndices(state);
-  const actionLabels = getControllerActionLabels(state);
-  title.textContent = family === "generic" ? "Controller aktiv" : `${familyLabel} Controller aktiv`;
-  nameValue.textContent = state.id || `Controller ${slot + 1}`;
-  indexValue.textContent = `${state.physicalIndex}`;
-  buttonsValue.textContent = buttonIndices.length > 0 ? buttonIndices.map((index) => `#${index}`).join(", ") : "Keine";
-  axesValue.textContent = `x: ${formatAxisValue(state.axes?.[0] ?? 0)} | y: ${formatAxisValue(state.axes?.[1] ?? 0)}`;
-  actionsValue.textContent = actionLabels.length > 0 ? actionLabels.join(", ") : "Keine Aktion";
-}
-
 function refreshModeScreen() {
   ui.modeCards.forEach((card) => {
     card.classList.toggle("selected", card.dataset.mode === appState.mode);
@@ -5362,8 +5274,6 @@ function refreshModeScreen() {
 
   updateControllerStatusCard(ui.controllerStatus0, 0, inputManager.gamepads[0]);
   updateControllerStatusCard(ui.controllerStatus1, 1, inputManager.gamepads[1]);
-  updateControllerDebugCard(ui.controllerDebug0, 0, inputManager.gamepads[0]);
-  updateControllerDebugCard(ui.controllerDebug1, 1, inputManager.gamepads[1]);
   const relevantChoices = appState.mode === "bot"
     ? [appState.inputSelections.player1]
     : [appState.inputSelections.player1, appState.inputSelections.player2];
@@ -5371,15 +5281,15 @@ function refreshModeScreen() {
   ui.controllerWarningText.hidden = !expectsController || inputManager.connectedCount > 0;
 
   if (appState.mode === "bot") {
-    ui.setupSubtitle.textContent = `Lege nur fuer Spieler 1 fest, ob du mit Tastatur, Handy Touch, Ps- oder Xbox-Controller spielst. Slot 2 wird von der Bot-KI auf ${getBotDifficultyConfig(appState.botDifficulty).label} uebernommen und kann nicht per Touch gesteuert werden.`;
+    ui.setupSubtitle.textContent = `Lege nur fuer Spieler 1 fest, ob du mit Tastatur, Ps- oder Xbox-Controller spielst. Slot 2 wird von der Bot-KI auf ${getBotDifficultyConfig(appState.botDifficulty).label} uebernommen.`;
     ui.player2AssignmentLabel.textContent = "Spieler 2";
     ui.player2AssignmentTitle.textContent = "Bot-KI";
     ui.player2AssignmentCopy.textContent = `Der Bot uebernimmt Slot 2 automatisch. Schwierigkeit: ${getBotDifficultyConfig(appState.botDifficulty).label}.`;
   } else {
-    ui.setupSubtitle.textContent = "Waehle fuer beide Spieler ein eigenes Input-Profil. Tastatur, Handy Touch sowie Ps- und Xbox-Controller koennen gemischt werden. Zwei Touch-Spieler teilen sich getrennte On-Screen-Pads.";
+    ui.setupSubtitle.textContent = "Waehle fuer beide Spieler ein eigenes Input-Profil. Tastatur sowie Ps- und Xbox-Controller koennen gemischt werden.";
     ui.player2AssignmentLabel.textContent = "Spieler 2";
     ui.player2AssignmentTitle.textContent = "Input-Profil";
-    ui.player2AssignmentCopy.textContent = "Waehle ein separates Profil. Derselbe Controller kann nicht beiden Spielern gleichzeitig zugewiesen werden, zwei Touch-Profile dagegen schon.";
+    ui.player2AssignmentCopy.textContent = "Waehle ein separates Profil. Derselbe Controller kann nicht beiden Spielern gleichzeitig zugewiesen werden.";
   }
 
   ui.player2AssignmentCard.hidden = appState.mode === "bot";
@@ -5405,7 +5315,6 @@ function refreshModeScreen() {
   ui.setupErrorText.hidden = validation.ok || !appState.mode;
   ui.setupErrorText.textContent = validation.message;
   ui.continueToCharactersButton.disabled = !validation.ok;
-  updateTouchControlsVisibility();
 }
 
 function openCharacterSelection() {
@@ -5475,75 +5384,6 @@ function hidePauseOverlay() {
   ui.pauseOverlay.classList.add("hidden");
 }
 
-function updateTouchControlsVisibility(players = game.players) {
-  const inBattle = appState.screen === "battleScreen" && game.active;
-  const currentMode = game.active ? game.currentMode : appState.mode;
-  let touchPlayer1 = null;
-  let touchPlayer2 = null;
-
-  if (inBattle) {
-    if (currentMode === "bot") {
-      touchPlayer1 = players.find((player) => !player.isBot && player.slot === 1 && player.inputChoice === "touch") ?? null;
-    } else {
-      touchPlayer1 = players.find((player) => !player.isBot && player.slot === 1 && player.inputChoice === "touch") ?? null;
-      touchPlayer2 = players.find((player) => !player.isBot && player.slot === 2 && player.inputChoice === "touch") ?? null;
-    }
-  }
-
-  const shouldShowControls = Boolean(touchPlayer1 || touchPlayer2);
-  document.body.classList.toggle("mobile-touch-ui", shouldShowControls);
-  ui.touchControls.hidden = !shouldShowControls;
-  ui.touchControls.classList.toggle("dual-touch", Boolean(touchPlayer1 && touchPlayer2));
-  ui.touchPanelP1.hidden = !touchPlayer1;
-  ui.touchPanelP2.hidden = !touchPlayer2;
-
-  if (!touchPlayer1) {
-    inputManager.clearTouchSlot(1);
-  }
-  if (!touchPlayer2) {
-    inputManager.clearTouchSlot(2);
-  }
-
-  ui.touchButtons.forEach((button) => {
-    const touchPlayer = Number(button.dataset.touchPlayer || "1");
-    const shouldShowButton = touchPlayer === 1 ? Boolean(touchPlayer1) : Boolean(touchPlayer2);
-    const activeSet = inputManager.touchDown[touchPlayer] ?? inputManager.touchDown[1];
-    button.classList.toggle("active", shouldShowButton && activeSet.has(button.dataset.touchAction));
-  });
-
-  if (!shouldShowControls) {
-    ui.touchStatusLabel.textContent = "Handy Touch inaktiv";
-    return;
-  }
-
-  if (touchPlayer1) {
-    const label = ui.touchPanelP1.querySelector(".touch-panel-label");
-    if (label) {
-      label.textContent = `${touchPlayer1.label} Touch`;
-    }
-  }
-
-  if (touchPlayer2) {
-    const label = ui.touchPanelP2.querySelector(".touch-panel-label");
-    if (label) {
-      label.textContent = `${touchPlayer2.label} Touch`;
-    }
-  }
-
-  const labels = [];
-  if (touchPlayer1) {
-    labels.push(touchPlayer1.label);
-  }
-  if (touchPlayer2) {
-    labels.push(touchPlayer2.label);
-  }
-  ui.touchStatusLabel.textContent = `Handy Touch aktiv - ${labels.join(" + ")}`;
-}
-
-function refreshTouchControls(players = game.players) {
-  updateTouchControlsVisibility(players);
-}
-
 function pauseMatch(kind, eyebrow, title, message) {
   if (!game.active || game.matchOver) {
     return;
@@ -5603,11 +5443,6 @@ function resetToMenu() {
   game.stopMatch();
   hidePauseOverlay();
   appState.mode = null;
-  ui.touchControls.hidden = true;
-  ui.touchControls.classList.remove("dual-touch");
-  ui.touchPanelP1.hidden = true;
-  ui.touchPanelP2.hidden = true;
-  updateTouchControlsVisibility([]);
   showScreen("mainMenu");
 }
 
@@ -5640,7 +5475,6 @@ function handleBattlePauseInput() {
 function assignInputChoice(playerKey, inputChoice) {
   appState.inputSelections[playerKey] = inputChoice;
   refreshModeScreen();
-  updateTouchControlsVisibility();
 }
 
 function activateMode(mode) {
@@ -5654,7 +5488,6 @@ function activateMode(mode) {
   }
   showScreen("modeScreen");
   refreshModeScreen();
-  updateTouchControlsVisibility();
 }
 
 ui.quickLocalButton?.addEventListener("click", () => activateMode("local"));
@@ -5663,7 +5496,6 @@ ui.quickBotButton?.addEventListener("click", () => activateMode("bot"));
 ui.modeBackButton.addEventListener("click", () => {
   appState.mode = null;
   showScreen("mainMenu");
-  updateTouchControlsVisibility([]);
 });
 
 ui.modeCards.forEach((card) => {
@@ -5702,6 +5534,7 @@ ui.playAgainButton.addEventListener("click", () => {
   openCharacterSelection();
 });
 ui.backToMenuButton.addEventListener("click", resetToMenu);
+window.addEventListener("resize", scheduleCharacterDetailHeightSync);
 
 renderCharacterCards();
 renderLives(ui.p1Lives, GAME.stockLives);
@@ -5723,7 +5556,6 @@ function appTick(timestamp) {
   accumulator += dt;
 
   inputManager.pollGamepads();
-  refreshTouchControls();
 
   if (appState.screen === "modeScreen") {
     refreshModeScreen();

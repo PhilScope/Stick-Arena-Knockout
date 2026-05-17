@@ -26,7 +26,7 @@
           <span>Lokal oder Bot</span>
           <span>15 Kaempfer</span>
           <span>Neue Faehigkeiten</span>
-          <span>Ps, Xbox und Handy Support</span>
+          <span>Ps und Xbox Support</span>
         </div>
 
         <div class="hero-mode-actions">
@@ -36,16 +36,6 @@
           </div>
         </div>
 
-        <div class="quick-controls">
-          <div>
-            <strong>Spieler 1</strong>
-            <span>A/D bewegen, W springen, S blocken, F Angriff, G Spezial, H Faehigkeit</span>
-          </div>
-          <div>
-            <strong>Spieler 2</strong>
-            <span>Pfeile bewegen, K Angriff, L Spezial, M oder Oe Faehigkeit</span>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -120,11 +110,9 @@
               <p class="eyebrow">Schritt 1C</p>
               <h3>Eingaben waehlen</h3>
               <p id="setupSubtitle" class="section-copy">
-                Lege pro Spieler fest, ob ihr mit Tastatur, Controller oder Handy-Touch spielt.
+                Lege pro Spieler fest, ob ihr mit Tastatur oder Controller spielt.
               </p>
             </div>
-
-            <button id="continueToCharactersButton" class="primary-button">Weiter zur Charakterauswahl</button>
           </div>
 
           <div class="controller-panel">
@@ -152,64 +140,13 @@
             </p>
           </div>
 
-          <div class="input-test-panel">
-            <div class="input-test-heading">
-              <div>
-                <strong>Eingabe-Test</strong>
-                <p class="section-copy">
-                  Druecke eine Taste auf der Tastatur oder einen Button auf einem verbundenen Controller.
-                  Das Spiel zeigt dir sofort, welche Aktion erkannt wurde.
-                </p>
-              </div>
-
-              <div class="input-test-readout">
-                <span id="inputTestAction" class="input-test-pill">Noch keine Eingabe</span>
-                <span id="inputTestSource" class="input-test-source">Warte auf Tastatur-, Ps- oder Xbox-Eingabe.</span>
-              </div>
-            </div>
-          </div>
-
-          <div id="controllerDebugPanel" class="controller-debug-panel">
-            <div class="controller-panel-heading">
-              <strong>Controller-Debug</strong>
-              <span>Zeigt live Name, Index, Buttons, linken Stick und erkannte Aktionen der verbundenen Controller.</span>
-            </div>
-
-            <div class="controller-debug-grid">
-              <div id="controllerDebug0" class="controller-debug-card">
-                <span class="controller-slot-label">Debug Controller 1</span>
-                <strong class="controller-debug-title">Kein Controller aktiv</strong>
-                <div class="controller-debug-data">
-                  <p><span>Name</span><strong data-debug-name>-</strong></p>
-                  <p><span>Index</span><strong data-debug-index>-</strong></p>
-                  <p><span>Buttons</span><strong data-debug-buttons>Keine</strong></p>
-                  <p><span>Stick</span><strong data-debug-axes>x: 0.00 | y: 0.00</strong></p>
-                  <p><span>Aktionen</span><strong data-debug-actions>Keine Aktion</strong></p>
-                </div>
-              </div>
-
-              <div id="controllerDebug1" class="controller-debug-card">
-                <span class="controller-slot-label">Debug Controller 2</span>
-                <strong class="controller-debug-title">Kein Controller aktiv</strong>
-                <div class="controller-debug-data">
-                  <p><span>Name</span><strong data-debug-name>-</strong></p>
-                  <p><span>Index</span><strong data-debug-index>-</strong></p>
-                  <p><span>Buttons</span><strong data-debug-buttons>Keine</strong></p>
-                  <p><span>Stick</span><strong data-debug-axes>x: 0.00 | y: 0.00</strong></p>
-                  <p><span>Aktionen</span><strong data-debug-actions>Keine Aktion</strong></p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="input-assignment-grid">
             <div class="input-assignment-card">
               <span class="detail-label">Spieler 1</span>
               <strong>Input-Profil</strong>
-              <p class="section-copy">Tastatur, Handy-Touch oder einer der verbundenen Ps-/Xbox-Controller.</p>
+              <p class="section-copy">Tastatur oder einer der verbundenen Ps-/Xbox-Controller.</p>
               <div class="input-option-list">
                 <button class="input-option-button" data-player="1" data-input="keyboard" type="button">Tastatur</button>
-                <button class="input-option-button" data-player="1" data-input="touch" type="button">Handy Touch</button>
                 <button class="input-option-button" data-player="1" data-input="controller0ps" type="button">Ps Controller 1</button>
                 <button class="input-option-button" data-player="1" data-input="controller1ps" type="button">Ps Controller 2</button>
                 <button class="input-option-button" data-player="1" data-input="controller0xbox" type="button">Xbox Controller 1</button>
@@ -225,7 +162,6 @@
               </p>
               <div id="player2InputOptions" class="input-option-list">
                 <button class="input-option-button" data-player="2" data-input="keyboard" type="button">Tastatur</button>
-                <button class="input-option-button" data-player="2" data-input="touch" type="button">Handy Touch</button>
                 <button class="input-option-button" data-player="2" data-input="controller0ps" type="button">Ps Controller 1</button>
                 <button class="input-option-button" data-player="2" data-input="controller1ps" type="button">Ps Controller 2</button>
                 <button class="input-option-button" data-player="2" data-input="controller0xbox" type="button">Xbox Controller 1</button>
@@ -237,7 +173,10 @@
           <p id="setupErrorText" class="setup-error"></p>
         </div>
 
-        <button id="modeBackButton" class="secondary-button">Zur&uuml;ck</button>
+        <div class="mode-footer-actions">
+          <button id="continueToCharactersButton" class="primary-button">Weiter zur Charakterauswahl</button>
+          <button id="modeBackButton" class="secondary-button">Zur&uuml;ck</button>
+        </div>
       </div>
     </section>
 
@@ -266,48 +205,52 @@
             <h3 id="detailName">Ninja</h3>
             <p id="detailDescription" class="detail-copy"></p>
 
-            <div class="detail-block">
-              <span class="detail-label">Design</span>
-              <p id="detailDesign"></p>
-            </div>
-
-            <div class="detail-block">
-              <span class="detail-label">Normaler Angriff</span>
-              <strong id="detailNormalName"></strong>
-              <p id="detailNormalDescription"></p>
-            </div>
-
-            <div class="detail-block">
-              <span class="detail-label">Spezialattacke</span>
-              <strong id="detailSpecialName"></strong>
-              <p id="detailSpecialDescription"></p>
-            </div>
-
-            <div class="detail-block">
-              <span class="detail-label">Neue Faehigkeit</span>
-              <strong id="detailAbilityName"></strong>
-              <p id="detailAbilityDescription"></p>
-              <p id="detailAbilityCooldown" class="detail-meta"></p>
-            </div>
-
-            <div class="detail-block">
-              <span class="detail-label">Tastatursteuerung</span>
-              <p id="detailKeyboardControls"></p>
-            </div>
-
-            <div class="detail-block">
-              <span class="detail-label">Controller / Handy</span>
-              <p id="detailControllerControls"></p>
-            </div>
-
-            <div class="detail-columns">
-              <div class="detail-column">
-                <span class="detail-label">Vorteile</span>
-                <p id="detailPros"></p>
+            <div class="detail-block detail-preview-block">
+              <span class="detail-label">Vorschau</span>
+              <div class="detail-preview-frame">
+                <canvas id="detailPreviewCanvas" class="detail-preview-canvas" width="320" height="176" aria-label="Charaktervorschau"></canvas>
               </div>
-              <div class="detail-column">
-                <span class="detail-label">Nachteile</span>
-                <p id="detailCons"></p>
+            </div>
+
+            <div class="detail-info-grid">
+              <div class="detail-block">
+                <span class="detail-label">Normaler Angriff</span>
+                <strong id="detailNormalName"></strong>
+                <p id="detailNormalDescription"></p>
+              </div>
+
+              <div class="detail-block">
+                <span class="detail-label">Spezialattacke</span>
+                <strong id="detailSpecialName"></strong>
+                <p id="detailSpecialDescription"></p>
+              </div>
+
+              <div class="detail-block detail-block-wide">
+                <span class="detail-label">Neue Faehigkeit</span>
+                <strong id="detailAbilityName"></strong>
+                <p id="detailAbilityDescription"></p>
+                <p id="detailAbilityCooldown" class="detail-meta"></p>
+              </div>
+
+              <div class="detail-block">
+                <span class="detail-label">Tastatur</span>
+                <p id="detailKeyboardControls"></p>
+              </div>
+
+              <div class="detail-block">
+                <span class="detail-label">Controller</span>
+                <p id="detailControllerControls"></p>
+              </div>
+
+              <div class="detail-columns">
+                <div class="detail-column">
+                  <span class="detail-label">Vorteile</span>
+                  <p id="detailPros"></p>
+                </div>
+                <div class="detail-column">
+                  <span class="detail-label">Nachteile</span>
+                  <p id="detailCons"></p>
+                </div>
               </div>
             </div>
 
@@ -420,46 +363,6 @@
             <div class="overlay-actions">
               <button id="resumeButton" class="primary-button">Fortsetzen</button>
               <button id="pauseMenuButton" class="secondary-button">Zur&uuml;ck zum Men&uuml;</button>
-            </div>
-          </div>
-
-          <div id="touchControls" class="touch-controls" hidden>
-            <div class="touch-status-row">
-              <span id="touchStatusLabel" class="touch-status-label">Handy Touch aktiv</span>
-            </div>
-
-            <div id="touchPanelP1" class="touch-panel touch-panel-left" hidden>
-              <span class="touch-panel-label">Spieler 1 Touch</span>
-              <div class="touch-cluster touch-move-cluster">
-                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="left" type="button">Links</button>
-                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="right" type="button">Rechts</button>
-                <button class="touch-button touch-button-wide" data-touch-player="1" data-touch-action="jump" type="button">Sprung</button>
-              </div>
-
-              <div class="touch-cluster touch-action-cluster">
-                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="block" type="button">Block</button>
-                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="attack" type="button">Angriff</button>
-                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="special" type="button">Spezial</button>
-                <button class="touch-button touch-button-small" data-touch-player="1" data-touch-action="ability" type="button">Faehigkeit</button>
-                <button class="touch-button touch-button-small touch-button-muted" data-touch-player="1" data-touch-action="pause" type="button">Pause</button>
-              </div>
-            </div>
-
-            <div id="touchPanelP2" class="touch-panel touch-panel-right" hidden>
-              <span class="touch-panel-label">Spieler 2 Touch</span>
-              <div class="touch-cluster touch-move-cluster">
-                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="left" type="button">Links</button>
-                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="right" type="button">Rechts</button>
-                <button class="touch-button touch-button-wide" data-touch-player="2" data-touch-action="jump" type="button">Sprung</button>
-              </div>
-
-              <div class="touch-cluster touch-action-cluster">
-                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="block" type="button">Block</button>
-                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="attack" type="button">Angriff</button>
-                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="special" type="button">Spezial</button>
-                <button class="touch-button touch-button-small" data-touch-player="2" data-touch-action="ability" type="button">Faehigkeit</button>
-                <button class="touch-button touch-button-small touch-button-muted" data-touch-player="2" data-touch-action="pause" type="button">Pause</button>
-              </div>
             </div>
           </div>
         </div>
